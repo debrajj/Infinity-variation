@@ -50,41 +50,13 @@
   </div>
 </div>
 
-<style>
-  /* Hide default Shopify Add to Cart when customizer is active */
-  .infinite-options-wrapper ~ .product-form__buttons,
-  .infinite-options-wrapper ~ .shopify-payment-button,
-  .product-form__submit {
-    display: none !important;
-  }
-  
-  .infinite-options-loading {
-    text-align: center;
-    padding: 40px;
-    color: #666;
-  }
-  
-  .spinner {
-    border: 3px solid #f3f3f3;
-    border-top: 3px solid {{ block.settings.primary_color }};
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    animation: spin 1s linear infinite;
-    margin: 0 auto 20px;
-  }
-  
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-</style>
-
 <script>
   // Initialize the customizer when DOM is ready
   document.addEventListener('DOMContentLoaded', function() {
     const customizerElement = document.getElementById('infinite-options-customizer');
     if (customizerElement && window.InfiniteOptionsApp) {
+      // Add class to body to help with CSS targeting
+      document.body.classList.add('infinite-options-active');
       window.InfiniteOptionsApp.init(customizerElement);
     }
   });

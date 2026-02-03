@@ -71,6 +71,9 @@
       let totalAddOnPrice = 0;
       const selections = {};
 
+      // Hide default Shopify add to cart buttons
+      this.hideDefaultAddToCart();
+
       // Build the customizer UI
       let html = `
         <div class="infinite-options-container" style="padding: 20px; background: #fff; border-radius: 12px;">
@@ -105,6 +108,42 @@
 
       // Attach event listeners
       this.attachEventListeners(element, optionSet, config);
+    },
+
+    hideDefaultAddToCart: function() {
+      console.log('🚫 Hiding default Shopify add to cart buttons');
+      
+      // Common selectors for Shopify add to cart buttons
+      const selectors = [
+        'form[action*="/cart/add"] button[type="submit"]',
+        'form[action*="/cart/add"] input[type="submit"]',
+        '.product-form__submit',
+        '.product-form button[name="add"]',
+        'button[name="add"]',
+        '.shopify-payment-button',
+        '.dynamic-checkout__content',
+        '[data-shopify="payment-button"]',
+        '.product-form__buttons',
+        '.product__add-to-cart'
+      ];
+
+      selectors.forEach(selector => {
+        const elements = document.querySelectorAll(selector);
+        elements.forEach(el => {
+          el.style.display = 'none';
+          el.setAttribute('data-infinite-options-hidden', 'true');
+          console.log('  ✓ Hidden:', selector);
+        });
+      });
+
+      // Also hide parent containers if they only contain the button
+      const containers = document.querySelectorAll('.product-form__buttons, .product-form__submit-wrapper');
+      containers.forEach(container => {
+        if (container.children.length === 1 || container.querySelector('[data-infinite-options-hidden]')) {
+          container.style.display = 'none';
+          console.log('  ✓ Hidden container');
+        }
+      });
     },
 
     renderOption: function(option, index, config) {

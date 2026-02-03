@@ -41,7 +41,30 @@
 }
 
 /* Hide default Shopify Add to Cart when customizer is active */
-.infinite-options-wrapper ~ .product-form__buttons,
-.infinite-options-wrapper ~ .shopify-payment-button {
+body:has(.infinite-options-container) form[action*="/cart/add"] button[type="submit"],
+body:has(.infinite-options-container) form[action*="/cart/add"] input[type="submit"],
+body:has(.infinite-options-container) .product-form__submit,
+body:has(.infinite-options-container) .product-form button[name="add"],
+body:has(.infinite-options-container) button[name="add"],
+body:has(.infinite-options-container) .shopify-payment-button,
+body:has(.infinite-options-container) .dynamic-checkout__content,
+body:has(.infinite-options-container) [data-shopify="payment-button"],
+body:has(.infinite-options-container) .product-form__buttons,
+body:has(.infinite-options-container) .product__add-to-cart {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Alternative method using data attribute */
+[data-infinite-options-hidden="true"] {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+/* Hide parent containers */
+body:has(.infinite-options-container) .product-form__buttons,
+body:has(.infinite-options-container) .product-form__submit-wrapper {
   display: none !important;
 }
