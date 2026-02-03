@@ -340,7 +340,8 @@
           console.log('🔍 Checking field:', opt.label, 'Type:', opt.type, 'ID:', opt.id);
           
           if (opt.type === 'text_input' || opt.type === 'text' || opt.type === 'textarea' || opt.type === 'number') {
-            const input = form.querySelector(`[data-option-id="${opt.id}"]`);
+            // Be more specific - look for input/textarea elements only, not parent divs
+            const input = form.querySelector(`input[data-option-id="${opt.id}"], textarea[data-option-id="${opt.id}"]`);
             console.log('  Input element:', input);
             console.log('  Input value:', input ? input.value : 'NOT FOUND');
             
@@ -402,7 +403,7 @@
         
         optionSet.options.forEach(opt => {
           if (opt.type === 'text_input' || opt.type === 'text' || opt.type === 'textarea' || opt.type === 'number') {
-            const input = form.querySelector(`[data-option-id="${opt.id}"]`);
+            const input = form.querySelector(`input[data-option-id="${opt.id}"], textarea[data-option-id="${opt.id}"]`);
             if (input && input.value) {
               selections[opt.id] = input.value;
               properties[opt.label] = input.value;
