@@ -2,6 +2,7 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
+import https from 'https';
 
 dotenv.config();
 
@@ -21,6 +22,25 @@ app.use((req, res, next) => {
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
   next();
 });
+
+// Helper function to make HTTPS requests
+const httpsRequest = (url, options = {}) => {
+  return new Promise((resolve, reject) => {
+    const req = https.request(url, options, (res) => {
+      let data = '';
+      res.on('data', (chunk) => data += chunk);
+      res.on('end', () => {
+        try {
+          resolve({ ok: res.statusCode >= 200 && res.statusCode < 300, status: res.statusCode, data: JSON.parse(data) });
+        } catch (e) {
+          resolve({ ok: false, status: res.statusCode, data: null });
+        }
+      });
+    });
+    req.on('error', reject);
+    req.end();
+  });
+};
 
 // API Routes
 app.get('/api/health', (req, res) => {
@@ -44,7 +64,8 @@ app.get('/api/products', async (req, res) => {
     // Fetch products from Shopify Admin API
     const shopifyUrl = `https://${shop}/admin/api/2024-01/products.json?limit=250`;
     
-    const response = await fetch(shopifyUrl, {
+    const response = await httpsRequest(shopifyUrl, {
+      method: 'GET',
       headers: {
         'X-Shopify-Access-Token': accessToken || process.env.SHOPIFY_ACCESS_TOKEN || '',
         'Content-Type': 'application/json'
@@ -55,7 +76,7 @@ app.get('/api/products', async (req, res) => {
       throw new Error(`Shopify API error: ${response.status}`);
     }
 
-    const data = await response.json();
+    const data = response.data;
     
     // Transform to our format
     const products = data.products.map(p => ({
