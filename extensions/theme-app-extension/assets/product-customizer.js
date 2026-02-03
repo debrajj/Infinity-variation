@@ -337,33 +337,54 @@
         console.log('✅ Validating', requiredOptions.length, 'required fields');
         
         for (const opt of requiredOptions) {
+          console.log('🔍 Checking field:', opt.label, 'Type:', opt.type, 'ID:', opt.id);
+          
           if (opt.type === 'text_input' || opt.type === 'text' || opt.type === 'textarea' || opt.type === 'number') {
             const input = form.querySelector(`[data-option-id="${opt.id}"]`);
-            if (!input || !input.value || !input.value.trim()) {
+            console.log('  Input element:', input);
+            console.log('  Input value:', input ? input.value : 'NOT FOUND');
+            
+            if (!input) {
+              console.log('  ❌ Input element not found!');
+              isValid = false;
+              missingFields.push(opt.label + ' (field not found)');
+            } else if (!input.value || !input.value.trim()) {
+              console.log('  ❌ Input value is empty');
               isValid = false;
               missingFields.push(opt.label);
-              console.log('❌ Missing:', opt.label);
+            } else {
+              console.log('  ✅ Field is filled:', input.value);
             }
           } else if (opt.type === 'radio' || opt.type === 'button' || opt.type === 'color_swatch') {
             const checked = form.querySelector(`input[name="option_${opt.id}"]:checked`);
+            console.log('  Radio/button checked:', checked ? checked.value : 'NONE');
+            
             if (!checked) {
               isValid = false;
               missingFields.push(opt.label);
-              console.log('❌ Missing:', opt.label);
+              console.log('  ❌ No option selected');
+            } else {
+              console.log('  ✅ Option selected');
             }
           } else if (opt.type === 'select' || opt.type === 'dropdown') {
             const select = form.querySelector(`select[data-option-id="${opt.id}"]`);
+            console.log('  Select value:', select ? select.value : 'NOT FOUND');
+            
             if (!select || !select.value) {
               isValid = false;
               missingFields.push(opt.label);
-              console.log('❌ Missing:', opt.label);
+              console.log('  ❌ No option selected');
+            } else {
+              console.log('  ✅ Option selected');
             }
           } else if (opt.type === 'file_upload') {
             const fileInput = form.querySelector(`input[type="file"][data-option-id="${opt.id}"]`);
             if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
               isValid = false;
               missingFields.push(opt.label);
-              console.log('❌ Missing:', opt.label);
+              console.log('  ❌ No file selected');
+            } else {
+              console.log('  ✅ File selected');
             }
           }
         }
