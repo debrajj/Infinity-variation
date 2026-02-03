@@ -320,14 +320,17 @@
 
       // Add to cart handler
       addToCartBtn.addEventListener('click', async () => {
+        console.log('🛒 Add to cart button clicked');
+        
         const prices = calculateTotal();
-        console.log('🛒 Add to cart clicked');
-        console.log('💰 Final total:', prices.finalTotal);
+        console.log('💰 Prices:', prices);
         
         // Validate required fields
         const requiredOptions = optionSet.options.filter(opt => opt.isRequired);
         let isValid = true;
         let missingFields = [];
+        
+        console.log('✅ Validating', requiredOptions.length, 'required fields');
         
         for (const opt of requiredOptions) {
           if (opt.type === 'text_input' || opt.type === 'text' || opt.type === 'textarea' || opt.type === 'number') {
@@ -335,18 +338,21 @@
             if (!input || !input.value.trim()) {
               isValid = false;
               missingFields.push(opt.label);
+              console.log('❌ Missing:', opt.label);
             }
           } else if (opt.type === 'radio' || opt.type === 'button' || opt.type === 'color_swatch') {
             const checked = form.querySelector(`input[name="option_${opt.id}"]:checked`);
             if (!checked) {
               isValid = false;
               missingFields.push(opt.label);
+              console.log('❌ Missing:', opt.label);
             }
           } else if (opt.type === 'select' || opt.type === 'dropdown') {
             const select = form.querySelector(`select[data-option-id="${opt.id}"]`);
             if (!select || !select.value) {
               isValid = false;
               missingFields.push(opt.label);
+              console.log('❌ Missing:', opt.label);
             }
           }
         }
@@ -355,6 +361,8 @@
           alert('Please fill in all required fields:\n\n' + missingFields.join('\n'));
           return;
         }
+        
+        console.log('✅ All required fields filled');
         
         // Collect all selections
         const selections = {};
@@ -371,15 +379,19 @@
             const checked = form.querySelector(`input[name="option_${opt.id}"]:checked`);
             if (checked) {
               const value = opt.values.find(v => v.id === checked.value);
-              selections[opt.id] = value;
-              properties[opt.label] = value.label + (value.addPrice > 0 ? ` (+$${value.addPrice.toFixed(2)})` : '');
+              if (value) {
+                selections[opt.id] = value;
+                properties[opt.label] = value.label + (value.addPrice > 0 ? ` (+$${value.addPrice.toFixed(2)})` : '');
+              }
             }
           } else if (opt.type === 'select' || opt.type === 'dropdown') {
             const select = form.querySelector(`select[data-option-id="${opt.id}"]`);
             if (select && select.value) {
               const value = opt.values.find(v => v.id === select.value);
-              selections[opt.id] = value;
-              properties[opt.label] = value.label + (value.addPrice > 0 ? ` (+$${value.addPrice.toFixed(2)})` : '');
+              if (value) {
+                selections[opt.id] = value;
+                properties[opt.label] = value.label + (value.addPrice > 0 ? ` (+$${value.addPrice.toFixed(2)})` : '');
+              }
             }
           } else if (opt.type === 'checkbox') {
             const checked = form.querySelectorAll(`input[data-option-id="${opt.id}"]:checked`);
@@ -404,9 +416,22 @@
         addToCartBtn.textContent = 'Adding to Cart...';
         
         try {
+          // Ensure variant ID is a number or string without 'gid://'
+          let variantId = config.variantId;
+          
+          // If it's a Shopify GID, extract the numeric ID
+          if (typeof variantId === 'string' && variantId.includes('gid://')) {
+            variantId = variantId.split('/').pop();
+          }
+          
+          // Convert to number
+          variantId = parseInt(variantId);
+          
+          console.log('🆔 Variant ID:', variantId);
+          
           // Add main product to cart with properties
           const mainProductData = {
-            id: config.variantId,
+            id: variantId,
             quantity: 1,
             properties: {
               ...properties,
@@ -419,12 +444,19 @@
           
           const response = await fetch('/cart/add.js', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
             body: JSON.stringify(mainProductData)
           });
           
+          console.log('📡 Response status:', response.status);
+          
           if (!response.ok) {
-            throw new Error('Failed to add product to cart');
+            const errorText = await response.text();
+            console.error('❌ Response error:', errorText);
+            throw new Error('Failed to add product to cart: ' + errorText);
           }
           
           const result = await response.json();
@@ -433,9 +465,13 @@
           // Try to add customization service product if add-ons exist
           if (prices.addonTotal > 0) {
             try {
+              console.log('💎 Checking for customization service...');
+              
               // Fetch customization service variant ID from API
               const serviceResponse = await fetch('https://infinity-variation.onrender.com/api/customization-service');
               const serviceData = await serviceResponse.json();
+              
+              console.log('📦 Service data:', serviceData);
               
               if (serviceData.variantId) {
                 console.log('💎 Adding customization service product');
@@ -448,18 +484,25 @@
                 };
                 
                 const serviceProductData = {
-                  id: serviceData.variantId,
+                  id: parseInt(serviceData.variantId),
                   quantity: 1,
                   properties: serviceProperties
                 };
                 
-                await fetch('/cart/add.js', {
+                const serviceResp = await fetch('/cart/add.js', {
                   method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
+                  headers: { 
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                  },
                   body: JSON.stringify(serviceProductData)
                 });
                 
-                console.log('✅ Customization service added');
+                if (serviceResp.ok) {
+                  console.log('✅ Customization service added');
+                } else {
+                  console.warn('⚠️ Could not add customization service');
+                }
               } else {
                 console.log('⚠️ No customization service product configured');
               }
@@ -469,22 +512,13 @@
             }
           }
           
-          // Redirect to cart or show success message
-          if (confirm('Product added to cart!\n\nView cart now?')) {
-            window.location.href = '/cart';
-          } else {
-            addToCartBtn.textContent = '✓ Added to Cart';
-            addToCartBtn.style.background = '#28a745';
-            setTimeout(() => {
-              addToCartBtn.textContent = 'Add to Cart';
-              addToCartBtn.style.background = config.primaryColor;
-              addToCartBtn.disabled = false;
-            }, 2000);
-          }
+          // Success! Redirect to cart
+          console.log('✅ Success! Redirecting to cart...');
+          window.location.href = '/cart';
           
         } catch (error) {
           console.error('❌ Error adding to cart:', error);
-          alert('Failed to add to cart. Please try again.');
+          alert('Failed to add to cart: ' + error.message + '\n\nCheck browser console for details.');
           addToCartBtn.textContent = 'Add to Cart';
           addToCartBtn.disabled = false;
         }
