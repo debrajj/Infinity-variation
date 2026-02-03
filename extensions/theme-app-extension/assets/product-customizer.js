@@ -88,9 +88,21 @@
       html += `
           </div>
           <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #f0f0f0;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-              <span style="font-size: 1.2rem; font-weight: 600;">Total Add-on Price:</span>
-              <span id="total-addon-price" style="font-size: 1.5rem; font-weight: 700; color: ${config.primaryColor};">$0.00</span>
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <span style="font-size: 1rem; color: #666;">Base Product Price:</span>
+                <span style="font-size: 1.2rem; font-weight: 600; color: #333;">$${config.productPrice.toFixed(2)}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <span style="font-size: 1rem; color: #666;">Customization Add-ons:</span>
+                <span id="total-addon-price" style="font-size: 1.2rem; font-weight: 600; color: ${config.primaryColor};">$0.00</span>
+              </div>
+              <div style="border-top: 2px solid #dee2e6; margin: 15px 0; padding-top: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span style="font-size: 1.3rem; font-weight: 700; color: #000;">Total Price:</span>
+                  <span id="total-final-price" style="font-size: 1.8rem; font-weight: 700; color: ${config.primaryColor};">$${config.productPrice.toFixed(2)}</span>
+                </div>
+              </div>
             </div>
             <button 
               id="infinite-add-to-cart" 
@@ -245,33 +257,44 @@
 
     attachEventListeners: function(element, optionSet, config) {
       const form = element.querySelector('#infinite-options-form');
-      const totalPriceEl = element.querySelector('#total-addon-price');
+      const totalAddonPriceEl = element.querySelector('#total-addon-price');
+      const totalFinalPriceEl = element.querySelector('#total-final-price');
       const addToCartBtn = element.querySelector('#infinite-add-to-cart');
 
       // Calculate total price
       const calculateTotal = () => {
-        let total = 0;
+        let addonTotal = 0;
         
         // Radio buttons and color swatches
         form.querySelectorAll('input[type="radio"]:checked').forEach(input => {
-          total += parseFloat(input.dataset.price || 0);
+          addonTotal += parseFloat(input.dataset.price || 0);
         });
 
         // Checkboxes
         form.querySelectorAll('input[type="checkbox"]:checked').forEach(input => {
-          total += parseFloat(input.dataset.price || 0);
+          addonTotal += parseFloat(input.dataset.price || 0);
         });
 
         // Selects
         form.querySelectorAll('select.option-input').forEach(select => {
           const selectedOption = select.options[select.selectedIndex];
           if (selectedOption) {
-            total += parseFloat(selectedOption.dataset.price || 0);
+            addonTotal += parseFloat(selectedOption.dataset.price || 0);
           }
         });
 
-        totalPriceEl.textContent = '$' + total.toFixed(2);
-        return total;
+        const finalTotal = config.productPrice + addonTotal;
+        
+        totalAddonPriceEl.textContent = '$' + addonTotal.toFixed(2);
+        totalFinalPriceEl.textContent = '$' + finalTotal.toFixed(2);
+        
+        console.log('💰 Price calculation:', {
+          basePrice: config.productPrice,
+          addons: addonTotal,
+          total: finalTotal
+        });
+        
+        return { addonTotal, finalTotal };
       };
 
       // Style radio/color swatch labels on selection
@@ -297,9 +320,11 @@
 
       // Add to cart handler
       addToCartBtn.addEventListener('click', () => {
-        console.log('Infinite Options: Add to cart clicked');
+        const prices = calculateTotal();
+        console.log('🛒 Add to cart clicked');
+        console.log('💰 Final total:', prices.finalTotal);
         // Here you would collect all selections and add to Shopify cart
-        alert('Add to cart functionality will be implemented. Total add-on: $' + totalPriceEl.textContent);
+        alert('Add to cart functionality will be implemented.\n\nBase Price: $' + config.productPrice.toFixed(2) + '\nAdd-ons: $' + prices.addonTotal.toFixed(2) + '\nTotal: $' + prices.finalTotal.toFixed(2));
       });
     }
   };
