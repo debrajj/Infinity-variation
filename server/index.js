@@ -214,6 +214,17 @@ app.delete('/api/option-sets/:id', (req, res) => {
   res.json({ success: true, id });
 });
 
+// Get customization service product variant ID
+app.get('/api/customization-service', (req, res) => {
+  const variantId = process.env.CUSTOMIZATION_SERVICE_VARIANT_ID;
+  
+  if (variantId) {
+    res.json({ variantId });
+  } else {
+    res.json({ variantId: null, message: 'Customization service product not configured' });
+  }
+});
+
 // Serve static files from React build
 app.use(express.static(path.join(__dirname, '../dist')));
 
