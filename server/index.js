@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import https from 'https';
+import fs from 'fs';
 
 dotenv.config();
 
@@ -11,6 +12,37 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// File-based storage for option sets
+const STORAGE_FILE = path.join(__dirname, 'option-sets.json');
+
+// Load option sets from file
+function loadOptionSets() {
+  try {
+    if (fs.existsSync(STORAGE_FILE)) {
+      const data = fs.readFileSync(STORAGE_FILE, 'utf8');
+      return JSON.parse(data);
+    }
+  } catch (err) {
+    console.error('Error loading option sets:', err);
+  }
+  return [];
+}
+
+// Save option sets to file
+function saveOptionSets(sets) {
+  try {
+    fs.writeFileSync(STORAGE_FILE, JSON.stringify(sets, null, 2), 'utf8');
+    console.log('✅ Option sets saved to file:', sets.length, 'sets');
+    return true;
+  } catch (err) {
+    console.error('Error saving option sets:', err);
+    return false;
+  }
+}
+
+// Initialize storage
+let optionSets = loadOptionSets();
 
 // Middleware
 app.use(express.json());
@@ -102,45 +134,60 @@ app.get('/api/products', async (req, res) => {
 
 // Option Sets API
 app.get('/api/option-sets', (req, res) => {
-  // Get all option sets from localStorage simulation (in-memory for now)
-  const sets = global.optionSets || [];
-  res.json({ optionSets: sets });
+  console.log('📦 GET /api/option-sets - Returning', optionSets.length, 'sets');
+  res.json({ optionSets });
 });
 
 // Get option sets for a specific product (for storefront)
 app.get('/api/storefront/option-sets', (req, res) => {
   const productId = req.query.productId;
   
+  console.log('🔍 GET /api/storefront/option-sets - Product ID:', productId);
+  console.log('📦 Total option sets:', optionSets.length);
+  
   if (!productId) {
     return res.status(400).json({ error: 'Product ID required' });
   }
 
   // Get option sets that are assigned to this product
-  const sets = global.optionSets || [];
-  const matchingSets = sets.filter(set => 
-    set.status === 'active' && 
-    set.targetProducts && 
-    set.targetProducts.includes(productId)
-  );
+  // Convert both to strings for comparison
+  const matchingSets = optionSets.filter(set => {
+    const isActive = set.status === 'active';
+    const hasTargets = set.targetProducts && Array.isArray(set.targetProducts);
+    const isAssigned = hasTargets && set.targetProducts.some(id => String(id) === String(productId));
+    
+    console.log(`  Set "${set.name}": active=${isActive}, hasTargets=${hasTargets}, isAssigned=${isAssigned}`);
+    if (hasTargets) {
+      console.log(`    Target products:`, set.targetProducts);
+    }
+    
+    return isActive && isAssigned;
+  });
 
+  console.log('✅ Found', matchingSets.length, 'matching sets for product', productId);
   res.json({ optionSets: matchingSets });
 });
 
 app.post('/api/option-sets', (req, res) => {
-  const optionSets = req.body.optionSets;
+  const newSets = req.body.optionSets;
   
-  if (!optionSets) {
+  if (!newSets) {
     return res.status(400).json({ error: 'Option sets required' });
   }
 
-  // Store in global memory (in production, use a database)
-  global.optionSets = optionSets;
+  // Save to file
+  optionSets = newSets;
+  const saved = saveOptionSets(optionSets);
   
-  res.json({ 
-    success: true, 
-    message: 'Option sets saved',
-    count: optionSets.length
-  });
+  if (saved) {
+    res.json({ 
+      success: true, 
+      message: 'Option sets saved',
+      count: optionSets.length
+    });
+  } else {
+    res.status(500).json({ error: 'Failed to save option sets' });
+  }
 });
 
 app.post('/api/option-sets', (req, res) => {
