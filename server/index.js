@@ -102,9 +102,9 @@ app.get('/api/products', async (req, res) => {
 
 // Option Sets API
 app.get('/api/option-sets', (req, res) => {
-  // In production, this would fetch from database
-  // For now, return empty array - data comes from localStorage
-  res.json({ optionSets: [] });
+  // Get all option sets from localStorage simulation (in-memory for now)
+  const sets = global.optionSets || [];
+  res.json({ optionSets: sets });
 });
 
 // Get option sets for a specific product (for storefront)
@@ -115,9 +115,32 @@ app.get('/api/storefront/option-sets', (req, res) => {
     return res.status(400).json({ error: 'Product ID required' });
   }
 
-  // In production, fetch from database where targetProducts includes productId
-  // For now, return empty - storefront uses localStorage
-  res.json({ optionSets: [] });
+  // Get option sets that are assigned to this product
+  const sets = global.optionSets || [];
+  const matchingSets = sets.filter(set => 
+    set.status === 'active' && 
+    set.targetProducts && 
+    set.targetProducts.includes(productId)
+  );
+
+  res.json({ optionSets: matchingSets });
+});
+
+app.post('/api/option-sets', (req, res) => {
+  const optionSets = req.body.optionSets;
+  
+  if (!optionSets) {
+    return res.status(400).json({ error: 'Option sets required' });
+  }
+
+  // Store in global memory (in production, use a database)
+  global.optionSets = optionSets;
+  
+  res.json({ 
+    success: true, 
+    message: 'Option sets saved',
+    count: optionSets.length
+  });
 });
 
 app.post('/api/option-sets', (req, res) => {

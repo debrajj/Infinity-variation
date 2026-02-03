@@ -24,34 +24,35 @@
 
     loadApp: function(element, config) {
       try {
-        // Get option sets from localStorage (synced from admin panel)
-        const savedSets = localStorage.getItem('ipo_option_sets');
+        // Fetch option sets from API
+        const apiUrl = window.location.hostname === 'localhost' 
+          ? 'http://localhost:3000/api/storefront/option-sets'
+          : 'https://infinity-variation.onrender.com/api/storefront/option-sets';
         
-        if (!savedSets) {
-          console.log('Infinite Options: No option sets found in localStorage');
-          element.innerHTML = '<p style="color: #666; text-align: center; padding: 20px;">No customization options configured yet. Please configure options in the admin panel.</p>';
-          return;
-        }
-
-        const optionSets = JSON.parse(savedSets);
-        console.log('Infinite Options: Found', optionSets.length, 'option sets');
-
-        // Find option set for this product
-        const matchingSet = optionSets.find(set => 
-          set.status === 'active' && 
-          set.targetProducts && 
-          set.targetProducts.includes(config.productId)
-        );
-
-        if (matchingSet) {
-          console.log('Infinite Options: Rendering option set:', matchingSet.name);
-          this.renderCustomizer(element, matchingSet, config);
-        } else {
-          console.log('Infinite Options: No matching option set for product', config.productId);
-          element.innerHTML = '<p style="color: #666; text-align: center; padding: 20px;">No customization options available for this product.</p>';
-        }
+        fetch(`${apiUrl}?productId=${config.productId}`)
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('Failed to fetch option sets');
+            }
+            return response.json();
+          })
+          .then(data => {
+            console.log('Infinite Options: API response:', data);
+            
+            if (data.optionSets && data.optionSets.length > 0) {
+              console.log('Infinite Options: Rendering option set:', data.optionSets[0].name);
+              this.renderCustomizer(element, data.optionSets[0], config);
+            } else {
+              console.log('Infinite Options: No matching option set for product', config.productId);
+              element.innerHTML = '<p style="color: #666; text-align: center; padding: 20px;">No customization options available for this product.</p>';
+            }
+          })
+          .catch(error => {
+            console.error('Infinite Options: Error loading options:', error);
+            element.innerHTML = '<p style="color: #e64a5d; text-align: center; padding: 20px;">Error loading customization options. Please refresh the page.</p>';
+          });
       } catch (error) {
-        console.error('Infinite Options: Error loading options:', error);
+        console.error('Infinite Options: Error in loadApp:', error);
         element.innerHTML = '<p style="color: #e64a5d; text-align: center; padding: 20px;">Error loading customization options. Please refresh the page.</p>';
       }
     },
