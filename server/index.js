@@ -102,6 +102,21 @@ app.get('/api/products', async (req, res) => {
 
 // Option Sets API
 app.get('/api/option-sets', (req, res) => {
+  // In production, this would fetch from database
+  // For now, return empty array - data comes from localStorage
+  res.json({ optionSets: [] });
+});
+
+// Get option sets for a specific product (for storefront)
+app.get('/api/storefront/option-sets', (req, res) => {
+  const productId = req.query.productId;
+  
+  if (!productId) {
+    return res.status(400).json({ error: 'Product ID required' });
+  }
+
+  // In production, fetch from database where targetProducts includes productId
+  // For now, return empty - storefront uses localStorage
   res.json({ optionSets: [] });
 });
 
