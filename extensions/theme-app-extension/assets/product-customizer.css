@@ -1,0 +1,47 @@
+/* Infinite Product Options - Theme Extension Styles */
+
+.infinite-options-wrapper {
+  margin: 20px 0;
+  padding: 20px;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.infinite-options-container {
+  width: 100%;
+}
+
+.infinite-options-container h3 {
+  margin: 0 0 20px 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.infinite-options-loading {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+}
+
+.spinner {
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #e64a5d;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Hide default Shopify Add to Cart when customizer is active */
+.infinite-options-wrapper ~ .product-form__buttons,
+.infinite-options-wrapper ~ .shopify-payment-button {
+  display: none !important;
+}

@@ -1,0 +1,9 @@
+
+uid = "0e79f6b0-eaae-9c1b-510b-f6b7670fe62444fa1c29"
+type = "theme"
+name = "Infinite Product Options"
+
+[settings]
+[[settings.blocks]]
+type = "app"
+name = "Product Customizer"
