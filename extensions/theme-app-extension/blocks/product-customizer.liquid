@@ -1,0 +1,93 @@
+{% comment %}
+  Product Customizer App Block
+  This block adds infinite product options to any product page
+{% endcomment %}
+
+{% schema %}
+{
+  "name": "Product Customizer",
+  "target": "section",
+  "stylesheet": "product-customizer.css",
+  "javascript": "product-customizer.js",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "enabled",
+      "label": "Enable Product Customizer",
+      "default": true
+    },
+    {
+      "type": "color",
+      "id": "primary_color",
+      "label": "Primary Color",
+      "default": "#e64a5d"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_prices",
+      "label": "Show Prices in Options",
+      "default": true
+    }
+  ],
+  "blocks": []
+}
+{% endschema %}
+
+{% if block.settings.enabled %}
+<div 
+  id="infinite-options-customizer" 
+  class="infinite-options-wrapper"
+  data-product-id="{{ product.id }}"
+  data-product-title="{{ product.title | escape }}"
+  data-product-price="{{ product.price | money_without_currency }}"
+  data-variant-id="{{ product.selected_or_first_available_variant.id }}"
+  data-shop="{{ shop.permanent_domain }}"
+  data-primary-color="{{ block.settings.primary_color }}"
+  data-show-prices="{{ block.settings.show_prices }}"
+>
+  <div class="infinite-options-loading">
+    <div class="spinner"></div>
+    <p>Loading customization options...</p>
+  </div>
+</div>
+
+<style>
+  /* Hide default Shopify Add to Cart when customizer is active */
+  .infinite-options-wrapper ~ .product-form__buttons,
+  .infinite-options-wrapper ~ .shopify-payment-button,
+  .product-form__submit {
+    display: none !important;
+  }
+  
+  .infinite-options-loading {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+  }
+  
+  .spinner {
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid {{ block.settings.primary_color }};
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+</style>
+
+<script>
+  // Initialize the customizer when DOM is ready
+  document.addEventListener('DOMContentLoaded', function() {
+    const customizerElement = document.getElementById('infinite-options-customizer');
+    if (customizerElement && window.InfiniteOptionsApp) {
+      window.InfiniteOptionsApp.init(customizerElement);
+    }
+  });
+</script>
+{% endif %}

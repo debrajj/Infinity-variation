@@ -1,0 +1,19 @@
+{
+  "name": "Copy of Globo Infinite Product Options Pro",
+  "description": "Create unlimited product options, advanced personalization, and conditional logic with real-time live previews and grouped service pricing.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "shopifyApp": {
+    "apiKey": "embedded_app_v1",
+    "embedded": true,
+    "scopes": [
+      "read_products",
+      "write_products",
+      "read_orders",
+      "write_orders",
+      "read_themes",
+      "write_themes"
+    ]
+  }
+}
