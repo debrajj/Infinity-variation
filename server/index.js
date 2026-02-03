@@ -223,19 +223,21 @@ app.get('/api/customization-service', async (req, res) => {
   
   // If not configured, try to create it automatically
   if (!variantId) {
-    console.log('⚙️ Customization service not configured, attempting to create...');
+    console.log('⚙️ Customization service not configured, attempting auto-creation...');
     
     try {
-      // Get shop from request
-      const shop = req.query.shop || req.headers['x-shopify-shop-domain'];
-      const accessToken = process.env.SHOPIFY_ACCESS_TOKEN;
+      // Get shop and access token
+      const shop = req.query.shop || process.env.SHOPIFY_SHOP_DOMAIN;
+      const accessToken = process.env.SHOPIFY_ACCESS_TOKEN || process.env.SHOPIFY_API_ACCESS_TOKEN;
       
       if (shop && accessToken) {
+        console.log('🏪 Creating service product for shop:', shop);
+        
         // Create the product via Shopify API
         const productData = {
           product: {
             title: 'Product Customization Service',
-            body_html: 'Automatic service fee for product customizations. This product is managed by the Infinite Product Options app.',
+            body_html: '<p>Automatic service fee for product customizations.</p><p><strong>This product is managed by the Infinite Product Options app. Do not purchase separately.</strong></p>',
             vendor: 'Infinite Options',
             product_type: 'Service',
             status: 'draft',
@@ -243,7 +245,8 @@ app.get('/api/customization-service', async (req, res) => {
             variants: [{
               price: '1.00',
               inventory_management: null,
-              requires_shipping: false
+              requires_shipping: false,
+              taxable: false
             }]
           }
         };
@@ -259,17 +262,25 @@ app.get('/api/customization-service', async (req, res) => {
         if (createResponse.ok && createResponse.data.product) {
           variantId = createResponse.data.product.variants[0].id.toString();
           console.log('✅ Created customization service product, variant ID:', variantId);
+          console.log('💡 Add this to your environment: CUSTOMIZATION_SERVICE_VARIANT_ID=' + variantId);
           
-          // Save to environment (in production, save to database)
+          // Save to environment (temporary - will persist until restart)
           process.env.CUSTOMIZATION_SERVICE_VARIANT_ID = variantId;
           
           res.json({ 
             variantId,
+            price: 1.00,
             autoCreated: true,
-            message: 'Customization service product created automatically'
+            message: 'Customization service product created automatically! Add CUSTOMIZATION_SERVICE_VARIANT_ID=' + variantId + ' to your environment to persist.'
           });
           return;
+        } else {
+          console.error('❌ Failed to create product:', createResponse);
         }
+      } else {
+        console.log('⚠️ Missing shop or access token for auto-creation');
+        console.log('   Shop:', shop ? 'provided' : 'MISSING');
+        console.log('   Access Token:', accessToken ? 'provided' : 'MISSING');
       }
     } catch (error) {
       console.error('❌ Failed to auto-create customization service:', error);
@@ -277,11 +288,18 @@ app.get('/api/customization-service', async (req, res) => {
   }
   
   if (variantId) {
-    res.json({ variantId, autoCreated: false });
+    // Return variant ID and price (default ₹1.00)
+    const price = parseFloat(process.env.CUSTOMIZATION_SERVICE_PRICE || '1.00');
+    res.json({ 
+      variantId, 
+      price,
+      autoCreated: false 
+    });
   } else {
     res.json({ 
       variantId: null, 
-      message: 'Customization service product not configured. Please create manually or provide SHOPIFY_ACCESS_TOKEN for auto-creation.' 
+      price: null,
+      message: 'Customization service product not configured. Please set SHOPIFY_SHOP_DOMAIN and SHOPIFY_ACCESS_TOKEN environment variables for auto-creation, or manually create the product and set CUSTOMIZATION_SERVICE_VARIANT_ID.' 
     });
   }
 });

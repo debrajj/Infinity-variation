@@ -516,9 +516,17 @@
                   ...properties
                 };
                 
+                // Calculate quantity based on service product price
+                // If service product is ₹1, quantity = addon price (e.g., ₹15 = qty 15)
+                // If service product is ₹0.01, quantity = addon price * 100 (e.g., ₹15 = qty 1500)
+                const servicePrice = serviceData.price || 1; // Default to ₹1 if not specified
+                const quantity = Math.round(prices.addonTotal / servicePrice);
+                
+                console.log('💰 Service price:', servicePrice, 'Addon total:', prices.addonTotal, 'Quantity:', quantity);
+                
                 const serviceProductData = {
                   id: parseInt(serviceData.variantId),
-                  quantity: 1,
+                  quantity: quantity,
                   properties: serviceProperties
                 };
                 
