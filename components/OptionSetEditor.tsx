@@ -7,18 +7,24 @@ interface EditorProps {
   optionSet: OptionSet;
   onSave: (set: OptionSet) => void;
   onCancel: () => void;
+  products?: Array<{ id: string; title: string; image?: string }>;
 }
 
-const OptionSetEditor: React.FC<EditorProps> = ({ optionSet, onSave, onCancel }) => {
+const OptionSetEditor: React.FC<EditorProps> = ({ optionSet, onSave, onCancel, products = [] }) => {
   const [activeSet, setActiveSet] = useState<OptionSet>(JSON.parse(JSON.stringify(optionSet)));
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
   const [showTypePicker, setShowTypePicker] = useState(false);
+  const [showProductPicker, setShowProductPicker] = useState(false);
   const typePickerRef = useRef<HTMLDivElement>(null);
+  const productPickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (typePickerRef.current && !typePickerRef.current.contains(event.target as Node)) {
         setShowTypePicker(false);
+      }
+      if (productPickerRef.current && !productPickerRef.current.contains(event.target as Node)) {
+        setShowProductPicker(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -93,9 +99,51 @@ const OptionSetEditor: React.FC<EditorProps> = ({ optionSet, onSave, onCancel })
       <div className="flex flex-1 overflow-hidden">
         {/* Structure Sidebar */}
         <div className="w-[340px] border-r border-gray-100 bg-[#fafafa] flex flex-col h-full">
-          <div className="p-6 pb-2 border-b border-gray-50 bg-white/50">
+          {/* Product Assignment Section */}
+          <div className="p-6 border-b border-gray-50 bg-white/50">
+             <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4">Assigned Products</h3>
+             <div className="space-y-2">
+                {activeSet.targetProducts && activeSet.targetProducts.length > 0 ? (
+                  <div className="space-y-2 max-h-32 overflow-y-auto">
+                    {activeSet.targetProducts.map(prodId => {
+                      const product = products.find(p => p.id === prodId);
+                      return product ? (
+                        <div key={prodId} className="flex items-center gap-3 p-2 bg-white rounded-xl border border-gray-100 group">
+                          {product.image && (
+                            <img src={product.image} alt={product.title} className="w-8 h-8 rounded-lg object-cover" />
+                          )}
+                          <span className="flex-1 text-xs font-bold text-gray-700 truncate">{product.title}</span>
+                          <button 
+                            onClick={() => setActiveSet(prev => ({
+                              ...prev, 
+                              targetProducts: prev.targetProducts?.filter(id => id !== prodId) || []
+                            }))}
+                            className="w-6 h-6 rounded-lg hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                          >
+                            <i className="fas fa-times text-xs"></i>
+                          </button>
+                        </div>
+                      ) : null;
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-6 px-4 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                    <i className="fas fa-box-open text-gray-300 text-2xl mb-2"></i>
+                    <p className="text-[10px] text-gray-400 font-bold">No products assigned</p>
+                  </div>
+                )}
+                <button 
+                  onClick={() => setShowProductPicker(true)}
+                  className="w-full py-3 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-50 hover:border-indigo-200 hover:text-indigo-600 transition-all flex items-center justify-center gap-2"
+                >
+                  <i className="fas fa-plus-circle"></i> Assign Products
+                </button>
+             </div>
+          </div>
+
+          <div className="p-6 pb-2 border-b border-gray-50 bg-white/50 flex-1 overflow-hidden flex flex-col">
              <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4">Structure</h3>
-             <div className="space-y-1.5 overflow-y-auto max-h-[calc(100vh-350px)]">
+             <div className="space-y-1.5 overflow-y-auto flex-1">
                 {activeSet.options.map((opt) => (
                   <div 
                     key={opt.id}
@@ -294,6 +342,82 @@ const OptionSetEditor: React.FC<EditorProps> = ({ optionSet, onSave, onCancel })
                          </div>
                       </div>
                    ))}
+                </div>
+             </div>
+          </div>
+        )}
+
+        {/* Product Picker Overlay */}
+        {showProductPicker && (
+          <div className="absolute inset-0 bg-white/40 backdrop-blur-sm flex items-center justify-center z-[100] p-6">
+             <div ref={productPickerRef} className="bg-white rounded-[40px] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.15)] border border-gray-100 w-[700px] max-h-[90vh] flex flex-col overflow-hidden animate-slideUp">
+                <div className="p-10 pb-4 flex justify-between items-center border-b border-gray-50/50">
+                   <div>
+                     <h2 className="text-xl font-black text-gray-900 tracking-tight">Assign Products</h2>
+                     <p className="text-xs text-gray-500 mt-1 font-medium">Select products to apply this option set</p>
+                   </div>
+                   <button onClick={() => setShowProductPicker(false)} className="w-10 h-10 rounded-full hover:bg-gray-50 text-gray-400 hover:text-gray-900 transition-colors">
+                      <i className="fas fa-times"></i>
+                   </button>
+                </div>
+                <div className="p-8 overflow-y-auto flex-1">
+                   {products.length > 0 ? (
+                     <div className="grid grid-cols-1 gap-3">
+                        {products.map(product => {
+                          const isAssigned = activeSet.targetProducts?.includes(product.id);
+                          return (
+                            <button
+                              key={product.id}
+                              onClick={() => {
+                                if (isAssigned) {
+                                  setActiveSet(prev => ({
+                                    ...prev,
+                                    targetProducts: prev.targetProducts?.filter(id => id !== product.id) || []
+                                  }));
+                                } else {
+                                  setActiveSet(prev => ({
+                                    ...prev,
+                                    targetProducts: [...(prev.targetProducts || []), product.id]
+                                  }));
+                                }
+                              }}
+                              className={`flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left ${
+                                isAssigned 
+                                  ? 'border-indigo-500 bg-indigo-50' 
+                                  : 'border-gray-100 hover:border-gray-200 bg-white'
+                              }`}
+                            >
+                              {product.image && (
+                                <img src={product.image} alt={product.title} className="w-16 h-16 rounded-xl object-cover" />
+                              )}
+                              <div className="flex-1">
+                                <h4 className="font-bold text-gray-900">{product.title}</h4>
+                                <p className="text-xs text-gray-500 mt-1">ID: {product.id}</p>
+                              </div>
+                              {isAssigned && (
+                                <div className="w-8 h-8 bg-indigo-500 rounded-full flex items-center justify-center text-white">
+                                  <i className="fas fa-check text-sm"></i>
+                                </div>
+                              )}
+                            </button>
+                          );
+                        })}
+                     </div>
+                   ) : (
+                     <div className="text-center py-20">
+                        <i className="fas fa-box-open text-gray-200 text-5xl mb-4"></i>
+                        <h4 className="text-lg font-black text-gray-900 mb-2">No Products Found</h4>
+                        <p className="text-sm text-gray-500">Add products to your store first</p>
+                     </div>
+                   )}
+                </div>
+                <div className="p-8 pt-4 border-t border-gray-50">
+                   <button 
+                     onClick={() => setShowProductPicker(false)}
+                     className="w-full bg-indigo-600 text-white py-4 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-indigo-700 transition-all"
+                   >
+                     Done
+                   </button>
                 </div>
              </div>
           </div>

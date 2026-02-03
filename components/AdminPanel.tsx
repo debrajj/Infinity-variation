@@ -89,6 +89,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
         return set ? (
           <OptionSetEditor 
             optionSet={set} 
+            products={products}
             onSave={(updated) => {
               saveOptionSets(optionSets.map(s => s.id === updated.id ? updated : s));
               setActiveTab('option-sets');
