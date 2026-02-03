@@ -240,7 +240,7 @@ app.get('/api/customization-service', async (req, res) => {
             body_html: '<p>Automatic service fee for product customizations.</p><p><strong>This product is managed by the Infinite Product Options app. Do not purchase separately.</strong></p>',
             vendor: 'Infinite Options',
             product_type: 'Service',
-            status: 'draft',
+            status: 'active',
             tags: 'customization-service,hidden,app-managed',
             variants: [{
               price: '1.00',

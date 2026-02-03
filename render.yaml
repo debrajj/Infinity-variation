@@ -18,4 +18,6 @@ services:
         sync: false
       - key: SHOPIFY_ACCESS_TOKEN
         sync: false
+      - key: SHOPIFY_SHOP_DOMAIN
+        sync: false
     autoDeploy: true
