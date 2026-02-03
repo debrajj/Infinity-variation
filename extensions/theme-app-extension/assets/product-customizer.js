@@ -339,7 +339,7 @@
         for (const opt of requiredOptions) {
           if (opt.type === 'text_input' || opt.type === 'text' || opt.type === 'textarea' || opt.type === 'number') {
             const input = form.querySelector(`[data-option-id="${opt.id}"]`);
-            if (!input || !input.value.trim()) {
+            if (!input || !input.value || !input.value.trim()) {
               isValid = false;
               missingFields.push(opt.label);
               console.log('❌ Missing:', opt.label);
@@ -354,6 +354,13 @@
           } else if (opt.type === 'select' || opt.type === 'dropdown') {
             const select = form.querySelector(`select[data-option-id="${opt.id}"]`);
             if (!select || !select.value) {
+              isValid = false;
+              missingFields.push(opt.label);
+              console.log('❌ Missing:', opt.label);
+            }
+          } else if (opt.type === 'file_upload') {
+            const fileInput = form.querySelector(`input[type="file"][data-option-id="${opt.id}"]`);
+            if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
               isValid = false;
               missingFields.push(opt.label);
               console.log('❌ Missing:', opt.label);
