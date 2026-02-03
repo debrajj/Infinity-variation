@@ -56,7 +56,7 @@ app.use((req, res, next) => {
 });
 
 // Helper function to make HTTPS requests
-const httpsRequest = (url, options = {}) => {
+const httpsRequest = (url, options = {}, body = null) => {
   return new Promise((resolve, reject) => {
     const req = https.request(url, options, (res) => {
       let data = '';
@@ -70,6 +70,9 @@ const httpsRequest = (url, options = {}) => {
       });
     });
     req.on('error', reject);
+    if (body) {
+      req.write(body);
+    }
     req.end();
   });
 };
@@ -215,13 +218,71 @@ app.delete('/api/option-sets/:id', (req, res) => {
 });
 
 // Get customization service product variant ID
-app.get('/api/customization-service', (req, res) => {
-  const variantId = process.env.CUSTOMIZATION_SERVICE_VARIANT_ID;
+app.get('/api/customization-service', async (req, res) => {
+  let variantId = process.env.CUSTOMIZATION_SERVICE_VARIANT_ID;
+  
+  // If not configured, try to create it automatically
+  if (!variantId) {
+    console.log('⚙️ Customization service not configured, attempting to create...');
+    
+    try {
+      // Get shop from request
+      const shop = req.query.shop || req.headers['x-shopify-shop-domain'];
+      const accessToken = process.env.SHOPIFY_ACCESS_TOKEN;
+      
+      if (shop && accessToken) {
+        // Create the product via Shopify API
+        const productData = {
+          product: {
+            title: 'Product Customization Service',
+            body_html: 'Automatic service fee for product customizations. This product is managed by the Infinite Product Options app.',
+            vendor: 'Infinite Options',
+            product_type: 'Service',
+            status: 'draft',
+            tags: 'customization-service,hidden,app-managed',
+            variants: [{
+              price: '1.00',
+              inventory_management: null,
+              requires_shipping: false
+            }]
+          }
+        };
+        
+        const createResponse = await httpsRequest(`https://${shop}/admin/api/2024-01/products.json`, {
+          method: 'POST',
+          headers: {
+            'X-Shopify-Access-Token': accessToken,
+            'Content-Type': 'application/json'
+          }
+        }, JSON.stringify(productData));
+        
+        if (createResponse.ok && createResponse.data.product) {
+          variantId = createResponse.data.product.variants[0].id.toString();
+          console.log('✅ Created customization service product, variant ID:', variantId);
+          
+          // Save to environment (in production, save to database)
+          process.env.CUSTOMIZATION_SERVICE_VARIANT_ID = variantId;
+          
+          res.json({ 
+            variantId,
+            autoCreated: true,
+            message: 'Customization service product created automatically'
+          });
+          return;
+        }
+      }
+    } catch (error) {
+      console.error('❌ Failed to auto-create customization service:', error);
+    }
+  }
   
   if (variantId) {
-    res.json({ variantId });
+    res.json({ variantId, autoCreated: false });
   } else {
-    res.json({ variantId: null, message: 'Customization service product not configured' });
+    res.json({ 
+      variantId: null, 
+      message: 'Customization service product not configured. Please create manually or provide SHOPIFY_ACCESS_TOKEN for auto-creation.' 
+    });
   }
 });
 
