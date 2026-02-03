@@ -38,12 +38,12 @@
   class="infinite-options-wrapper"
   data-product-id="{{ product.id }}"
   data-product-title="{{ product.title | escape }}"
-  data-product-price="{{ product.price }}"
+  data-product-price="{{ product.selected_or_first_available_variant.price }}"
   data-variant-id="{{ product.selected_or_first_available_variant.id }}"
   data-shop="{{ shop.permanent_domain }}"
   data-primary-color="{{ block.settings.primary_color }}"
   data-show-prices="{{ block.settings.show_prices }}"
-  data-currency="{{ shop.currency }}"
+  data-currency="{{ cart.currency.symbol }}"
 >
   <div class="infinite-options-loading">
     <div class="spinner"></div>
@@ -59,6 +59,18 @@
       // Add class to body to help with CSS targeting
       document.body.classList.add('infinite-options-active');
       window.InfiniteOptionsApp.init(customizerElement);
+      
+      // Listen for variant changes to update price
+      document.addEventListener('variant:change', function(event) {
+        if (event.detail && event.detail.variant) {
+          console.log('🔄 Variant changed:', event.detail.variant);
+          customizerElement.dataset.variantId = event.detail.variant.id;
+          customizerElement.dataset.productPrice = event.detail.variant.price;
+          
+          // Reinitialize with new price
+          window.InfiniteOptionsApp.init(customizerElement);
+        }
+      });
     }
   });
 </script>
