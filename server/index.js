@@ -18,7 +18,7 @@ app.use(express.urlencoded({ extended: true }));
 // CORS for development
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
   next();
 });
 
@@ -31,15 +31,60 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Shopify Products API - Fetch real products
+app.get('/api/products', async (req, res) => {
+  try {
+    const shop = req.query.shop || req.headers['x-shopify-shop-domain'];
+    const accessToken = req.headers['authorization']?.replace('Bearer ', '');
+
+    if (!shop) {
+      return res.status(400).json({ error: 'Shop parameter required' });
+    }
+
+    // Fetch products from Shopify Admin API
+    const shopifyUrl = `https://${shop}/admin/api/2024-01/products.json?limit=250`;
+    
+    const response = await fetch(shopifyUrl, {
+      headers: {
+        'X-Shopify-Access-Token': accessToken || process.env.SHOPIFY_ACCESS_TOKEN || '',
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Shopify API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    // Transform to our format
+    const products = data.products.map(p => ({
+      id: p.id.toString(),
+      title: p.title,
+      handle: p.handle,
+      price: parseFloat(p.variants[0]?.price || '0'),
+      image: p.images[0]?.src || p.image?.src || '',
+      inventory: p.variants[0]?.inventory_quantity || 0,
+      setsCount: 0,
+      status: p.status
+    }));
+
+    res.json({ products });
+  } catch (error) {
+    console.error('Error fetching products:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch products',
+      message: error.message 
+    });
+  }
+});
+
 // Option Sets API
 app.get('/api/option-sets', (req, res) => {
-  // In production, fetch from database
-  // For now, return empty array
   res.json({ optionSets: [] });
 });
 
 app.post('/api/option-sets', (req, res) => {
-  // In production, save to database
   const optionSet = req.body;
   res.json({ 
     success: true, 
@@ -49,7 +94,6 @@ app.post('/api/option-sets', (req, res) => {
 });
 
 app.put('/api/option-sets/:id', (req, res) => {
-  // In production, update in database
   const { id } = req.params;
   const optionSet = req.body;
   res.json({ 
@@ -60,20 +104,8 @@ app.put('/api/option-sets/:id', (req, res) => {
 });
 
 app.delete('/api/option-sets/:id', (req, res) => {
-  // In production, delete from database
   const { id } = req.params;
   res.json({ success: true, id });
-});
-
-// Products API
-app.get('/api/products', async (req, res) => {
-  try {
-    const shop = req.query.shop;
-    // In production, fetch from Shopify API
-    res.json({ products: [] });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
 });
 
 // Serve static files from React build

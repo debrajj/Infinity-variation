@@ -13,15 +13,40 @@ const App: React.FC = () => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
 
-  // Fetch real products from Shopify using App Bridge
+  // Fetch real products from Shopify
   const syncProductsFromShopify = async () => {
     setIsSyncing(true);
     
     try {
-      // For now, just load mock products since we don't have backend API set up yet
-      // In production, this would call your Shopify API
-      console.log('Loading products...');
-      loadMockProducts();
+      // Get shop from URL params (Shopify embeds this)
+      const urlParams = new URLSearchParams(window.location.search);
+      const shop = urlParams.get('shop');
+      
+      if (!shop) {
+        console.warn('No shop parameter, loading mock data');
+        loadMockProducts();
+        return;
+      }
+
+      // Fetch from our backend API
+      const response = await fetch(`/api/products?shop=${shop}`, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch products');
+      }
+      
+      const data = await response.json();
+      
+      if (data.products && data.products.length > 0) {
+        setProducts(data.products);
+      } else {
+        // No products in store, show mock data
+        loadMockProducts();
+      }
     } catch (error) {
       console.error('Error fetching products:', error);
       loadMockProducts();
