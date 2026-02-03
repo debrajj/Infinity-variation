@@ -18,41 +18,12 @@ const App: React.FC = () => {
     setIsSyncing(true);
     
     try {
-      // Get shop parameter from URL
-      const urlParams = new URLSearchParams(window.location.search);
-      const shop = urlParams.get('shop');
-      
-      if (!shop) {
-        console.warn('No shop parameter found, using mock data');
-        loadMockProducts();
-        return;
-      }
-
-      // Use Shopify Admin API via fetch
-      const response = await fetch(`/api/products?shop=${shop}`);
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch products');
-      }
-      
-      const data = await response.json();
-      
-      // Transform Shopify products to our format
-      const transformedProducts: Product[] = data.products.map((p: any) => ({
-        id: p.id.toString(),
-        title: p.title,
-        handle: p.handle,
-        price: parseFloat(p.variants[0]?.price || '0'),
-        image: p.images[0]?.src || 'https://via.placeholder.com/100',
-        inventory: p.variants[0]?.inventory_quantity || 0,
-        setsCount: 0,
-        status: p.status
-      }));
-      
-      setProducts(transformedProducts);
+      // For now, just load mock products since we don't have backend API set up yet
+      // In production, this would call your Shopify API
+      console.log('Loading products...');
+      loadMockProducts();
     } catch (error) {
       console.error('Error fetching products:', error);
-      // Fallback to mock data
       loadMockProducts();
     } finally {
       setIsSyncing(false);
