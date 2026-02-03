@@ -38,11 +38,12 @@
   class="infinite-options-wrapper"
   data-product-id="{{ product.id }}"
   data-product-title="{{ product.title | escape }}"
-  data-product-price="{{ product.price | money_without_currency }}"
+  data-product-price="{{ product.price }}"
   data-variant-id="{{ product.selected_or_first_available_variant.id }}"
   data-shop="{{ shop.permanent_domain }}"
   data-primary-color="{{ block.settings.primary_color }}"
   data-show-prices="{{ block.settings.show_prices }}"
+  data-currency="{{ shop.currency }}"
 >
   <div class="infinite-options-loading">
     <div class="spinner"></div>

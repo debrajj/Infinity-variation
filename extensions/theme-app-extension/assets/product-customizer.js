@@ -11,16 +11,20 @@
       const config = {
         productId: element.dataset.productId,
         productTitle: element.dataset.productTitle,
-        productPrice: parseFloat(element.dataset.productPrice),
+        productPrice: parseFloat(element.dataset.productPrice) / 100, // Convert from cents/paise to main currency
         variantId: element.dataset.variantId,
         shop: element.dataset.shop,
         primaryColor: element.dataset.primaryColor || '#e64a5d',
-        showPrices: element.dataset.showPrices === 'true'
+        showPrices: element.dataset.showPrices === 'true',
+        currency: element.dataset.currency || 'Rs.'
       };
 
       console.log('🚀 Infinite Options: Initializing');
       console.log('📦 Product ID:', config.productId);
       console.log('📦 Product Title:', config.productTitle);
+      console.log('💰 Product Price (raw):', element.dataset.productPrice);
+      console.log('💰 Product Price (converted):', config.productPrice);
+      console.log('💱 Currency:', config.currency);
       console.log('🏪 Shop:', config.shop);
       
       this.loadApp(element, config);
@@ -91,16 +95,16 @@
             <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                 <span style="font-size: 1rem; color: #666;">Base Product Price:</span>
-                <span style="font-size: 1.2rem; font-weight: 600; color: #333;">$${config.productPrice.toFixed(2)}</span>
+                <span style="font-size: 1.2rem; font-weight: 600; color: #333;">${config.currency}${config.productPrice.toFixed(2)}</span>
               </div>
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                 <span style="font-size: 1rem; color: #666;">Customization Add-ons:</span>
-                <span id="total-addon-price" style="font-size: 1.2rem; font-weight: 600; color: ${config.primaryColor};">$0.00</span>
+                <span id="total-addon-price" style="font-size: 1.2rem; font-weight: 600; color: ${config.primaryColor};">${config.currency}0.00</span>
               </div>
               <div style="border-top: 2px solid #dee2e6; margin: 15px 0; padding-top: 15px;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                   <span style="font-size: 1.3rem; font-weight: 700; color: #000;">Total Price:</span>
-                  <span id="total-final-price" style="font-size: 1.8rem; font-weight: 700; color: ${config.primaryColor};">$${config.productPrice.toFixed(2)}</span>
+                  <span id="total-final-price" style="font-size: 1.8rem; font-weight: 700; color: ${config.primaryColor};">${config.currency}${config.productPrice.toFixed(2)}</span>
                 </div>
               </div>
             </div>
@@ -197,7 +201,7 @@
         case 'button':
           html += '<div style="display: flex; flex-wrap: wrap; gap: 10px;">';
           option.values.forEach((value, vIndex) => {
-            const priceText = config.showPrices && value.addPrice > 0 ? ` (+$${value.addPrice.toFixed(2)})` : '';
+            const priceText = config.showPrices && value.addPrice > 0 ? ` (+${config.currency}${value.addPrice.toFixed(2)})` : '';
             html += `
               <label style="flex: 1; min-width: 120px; padding: 12px; border: 2px solid #ddd; border-radius: 6px; cursor: pointer; text-align: center; transition: all 0.2s;" class="radio-option" data-price="${value.addPrice}">
                 <input type="radio" name="option_${option.id}" value="${value.id}" data-option-id="${option.id}" data-price="${value.addPrice}" style="display: none;" ${option.isRequired && vIndex === 0 ? 'checked' : ''} />
@@ -213,7 +217,7 @@
           html += `<select class="option-input" data-option-id="${option.id}" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 1rem;" ${option.isRequired ? 'required' : ''}>`;
           html += '<option value="">Select an option</option>';
           option.values.forEach(value => {
-            const priceText = config.showPrices && value.addPrice > 0 ? ` (+$${value.addPrice.toFixed(2)})` : '';
+            const priceText = config.showPrices && value.addPrice > 0 ? ` (+${config.currency}${value.addPrice.toFixed(2)})` : '';
             html += `<option value="${value.id}" data-price="${value.addPrice}">${value.label}${priceText}</option>`;
           });
           html += '</select>';
@@ -221,7 +225,7 @@
 
         case 'checkbox':
           option.values.forEach(value => {
-            const priceText = config.showPrices && value.addPrice > 0 ? ` (+$${value.addPrice.toFixed(2)})` : '';
+            const priceText = config.showPrices && value.addPrice > 0 ? ` (+${config.currency}${value.addPrice.toFixed(2)})` : '';
             html += `
               <label style="display: flex; align-items: center; gap: 10px; padding: 10px; cursor: pointer;">
                 <input type="checkbox" value="${value.id}" data-option-id="${option.id}" data-price="${value.addPrice}" style="width: 20px; height: 20px;" />
@@ -234,7 +238,7 @@
         case 'color_swatch':
           html += '<div style="display: flex; flex-wrap: wrap; gap: 10px;">';
           option.values.forEach((value, vIndex) => {
-            const priceText = config.showPrices && value.addPrice > 0 ? ` (+$${value.addPrice.toFixed(2)})` : '';
+            const priceText = config.showPrices && value.addPrice > 0 ? ` (+${config.currency}${value.addPrice.toFixed(2)})` : '';
             html += `
               <label style="cursor: pointer; text-align: center;" class="color-swatch" data-price="${value.addPrice}">
                 <input type="radio" name="option_${option.id}" value="${value.id}" data-option-id="${option.id}" data-price="${value.addPrice}" style="display: none;" ${option.isRequired && vIndex === 0 ? 'checked' : ''} />
@@ -285,8 +289,8 @@
 
         const finalTotal = config.productPrice + addonTotal;
         
-        totalAddonPriceEl.textContent = '$' + addonTotal.toFixed(2);
-        totalFinalPriceEl.textContent = '$' + finalTotal.toFixed(2);
+        totalAddonPriceEl.textContent = config.currency + addonTotal.toFixed(2);
+        totalFinalPriceEl.textContent = config.currency + finalTotal.toFixed(2);
         
         console.log('💰 Price calculation:', {
           basePrice: config.productPrice,
