@@ -2,17 +2,17 @@
 
 name = "infinite-product-options"
 client_id = "46ec9c3dd8792f6780c371e936ee0bf2"
-application_url = "https://super-elf-df256d.netlify.app"
+application_url = "https://infinity-variation.onrender.com"
 embedded = true
 
 [access_scopes]
-scopes = "write_products,read_products"
+scopes = "write_products,read_products,write_themes,read_themes"
 
 [auth]
 redirect_urls = [
-  "https://super-elf-df256d.netlify.app/auth/callback",
-  "https://super-elf-df256d.netlify.app/auth/shopify/callback",
-  "https://super-elf-df256d.netlify.app/api/auth/callback"
+  "https://infinity-variation.onrender.com/auth/callback",
+  "https://infinity-variation.onrender.com/auth/shopify/callback",
+  "https://infinity-variation.onrender.com/api/auth/callback"
 ]
 
 [webhooks]
