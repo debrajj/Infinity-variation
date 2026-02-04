@@ -10,143 +10,127 @@
   function customizeCart() {
     console.log('🔍 Scanning cart items...');
     
-    // Find all cart items
-    const selectors = [
-      '.cart-item',
-      '.cart__row', 
-      'tr[data-line-item]',
-      '[data-cart-item]',
-      '.cart-item-row',
-      'tbody tr'
-    ];
-    
-    const allItems = [];
-    selectors.forEach(selector => {
-      document.querySelectorAll(selector).forEach(item => {
-        if (!allItems.includes(item)) {
-          allItems.push(item);
-        }
-      });
-    });
-    
-    console.log(`📦 Found ${allItems.length} cart items`);
-    
-    allItems.forEach(item => {
-      // Find title element
-      const titleSelectors = [
-        'a[href*="product"]',
-        '.cart-item__name',
-        '.cart__product-title',
-        '.product-title',
-        '[data-cart-item-title]',
-        'td.cart__meta a',
-        '.cart-item__details a'
-      ];
-      
-      let titleElement = null;
-      for (const sel of titleSelectors) {
-        titleElement = item.querySelector(sel);
-        if (titleElement) break;
-      }
-      
-      if (titleElement) {
-        const title = titleElement.textContent || '';
-        
-        // Check if this is the service product
-        if (title.includes('Product Customization Service') || 
-            title.includes('Customization Service')) {
-          
-          console.log('✅ Found service product - hiding it');
-          
-          // Hide the entire line item
-          item.style.display = 'none';
-          item.classList.add('hidden-service-product');
-        }
-      }
-    });
-    
-    // Add addon pricing display to cart summary
-    addAddonSummary();
-  }
-  
-  function addAddonSummary() {
-    // Get cart data
+    // Get cart data first
     fetch('/cart.js')
       .then(response => response.json())
       .then(cart => {
         console.log('🛒 Cart loaded');
         
-        // Find service product items
+        // Find service product items by checking properties
         const serviceItems = cart.items.filter(item => 
-          item.title.includes('Product Customization Service') || 
-          item.title.includes('Customization Service')
+          item.properties && item.properties._hide_in_cart === 'true'
         );
         
         if (serviceItems.length === 0) {
-          console.log('ℹ️ No addon pricing');
+          console.log('ℹ️ No service products to hide');
           return;
         }
         
-        // Calculate total addon price
-        let addonTotal = 0;
-        serviceItems.forEach(item => {
-          addonTotal += (item.final_line_price / 100);
+        console.log('💎 Found', serviceItems.length, 'service products to hide');
+        
+        // Hide each service product by its key
+        serviceItems.forEach(serviceItem => {
+          console.log('🔍 Hiding service item:', serviceItem.key);
+          
+          // Find the cart item element by key
+          const selectors = [
+            `[data-cart-item-key="${serviceItem.key}"]`,
+            `[data-line-item-key="${serviceItem.key}"]`,
+            `[data-key="${serviceItem.key}"]`,
+            `.cart-item[data-key="${serviceItem.key}"]`,
+            `.cart__row[data-key="${serviceItem.key}"]`,
+            `tr[data-key="${serviceItem.key}"]`
+          ];
+          
+          selectors.forEach(selector => {
+            const elements = document.querySelectorAll(selector);
+            elements.forEach(el => {
+              el.style.display = 'none';
+              el.classList.add('hidden-service-product');
+              console.log('✅ Hidden element:', selector);
+            });
+          });
+          
+          // Also try to find by title
+          const allItems = document.querySelectorAll('.cart-item, .cart__row, tr[data-line-item]');
+          allItems.forEach(item => {
+            const titleEl = item.querySelector('a[href*="product"], .cart-item__name, .product-title');
+            if (titleEl && titleEl.textContent.includes('Product Customization Service')) {
+              item.style.display = 'none';
+              item.classList.add('hidden-service-product');
+              console.log('✅ Hidden by title match');
+            }
+          });
         });
         
-        console.log('💰 Addon total:', addonTotal);
-        
-        // Find cart subtotal area
-        const subtotalSelectors = [
-          '.cart__footer',
-          '.cart-footer',
-          '.totals',
-          '[data-cart-subtotal]',
-          '.cart__subtotal'
-        ];
-        
-        let subtotalContainer = null;
-        for (const sel of subtotalSelectors) {
-          subtotalContainer = document.querySelector(sel);
-          if (subtotalContainer) {
-            console.log('✅ Found subtotal container:', sel);
-            break;
-          }
-        }
-        
-        if (subtotalContainer && !document.querySelector('.addon-pricing-summary')) {
-          // Create addon pricing summary
-          const addonSummary = document.createElement('div');
-          addonSummary.className = 'addon-pricing-summary';
-          addonSummary.style.cssText = `
-            padding: 15px;
-            background: #f0f8ff;
-            border: 2px solid #4CAF50;
-            border-radius: 8px;
-            margin-bottom: 15px;
-          `;
-          addonSummary.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-weight: 600; color: #2e7d32;">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" style="vertical-align: middle; margin-right: 5px;">
-                  <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
-                </svg>
-                Customization Add-ons Included
-              </span>
-              <span style="font-weight: 700; color: #2e7d32; font-size: 1.1rem;">
-                Rs. ${addonTotal.toFixed(2)}
-              </span>
-            </div>
-          `;
-          
-          // Insert at the beginning of subtotal container
-          subtotalContainer.insertBefore(addonSummary, subtotalContainer.firstChild);
-          
-          console.log('✅ Added addon pricing summary');
-        }
+        // Add addon summary to main products
+        addAddonSummary(cart, serviceItems);
       })
       .catch(error => {
         console.error('❌ Error:', error);
       });
+  }
+  
+  function addAddonSummary(cart, serviceItems) {
+    if (!serviceItems || serviceItems.length === 0) return;
+    
+    // Calculate total addon price
+    let addonTotal = 0;
+    serviceItems.forEach(item => {
+      addonTotal += (item.final_line_price / 100);
+    });
+    
+    console.log('💰 Addon total:', addonTotal);
+    
+    // Find the main product items (not service products)
+    const mainItems = cart.items.filter(item => 
+      !item.properties || item.properties._hide_in_cart !== 'true'
+    );
+    
+    // Add addon note to the first main product
+    if (mainItems.length > 0) {
+      const mainItem = mainItems[0];
+      
+      // Find the cart item element
+      const selectors = [
+        `[data-cart-item-key="${mainItem.key}"]`,
+        `[data-line-item-key="${mainItem.key}"]`,
+        `[data-key="${mainItem.key}"]`
+      ];
+      
+      let mainItemElement = null;
+      for (const sel of selectors) {
+        mainItemElement = document.querySelector(sel);
+        if (mainItemElement) break;
+      }
+      
+      if (mainItemElement && !mainItemElement.querySelector('.addon-pricing-badge')) {
+        // Add addon pricing badge
+        const badge = document.createElement('div');
+        badge.className = 'addon-pricing-badge';
+        badge.style.cssText = `
+          display: inline-block;
+          padding: 6px 12px;
+          background: #4CAF50;
+          color: white;
+          border-radius: 4px;
+          font-size: 0.85rem;
+          font-weight: 600;
+          margin-top: 8px;
+        `;
+        badge.innerHTML = `✓ Customization Add-ons: Rs. ${addonTotal.toFixed(2)}`;
+        
+        // Find the best place to insert
+        const detailsContainer = mainItemElement.querySelector('.cart-item__details, .cart__item-details, [class*="item-details"]');
+        if (detailsContainer) {
+          detailsContainer.appendChild(badge);
+        } else {
+          mainItemElement.appendChild(badge);
+        }
+        
+        console.log('✅ Added addon badge');
+      }
+    }
   }
   
   // Run on page load

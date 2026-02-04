@@ -1,56 +1,45 @@
 /**
  * Cart Customizer Styles
- * Makes service product look clean in cart
+ * Completely hides service product line
  */
 
-/* Hide quantity column for service product */
-.cart-item:has([href*="product-customization"]) .cart-item__quantity,
-.cart-item:has([href*="customization-service"]) .cart-item__quantity,
-.cart__row:has([href*="product-customization"]) .cart__quantity,
-.cart__row:has([href*="customization-service"]) .cart__quantity {
-  visibility: hidden !important;
-  width: 0 !important;
-  padding: 0 !important;
-}
-
-/* Hide unit price for service product */
-.cart-item:has([href*="product-customization"]) .cart-item__price-wrapper,
-.cart-item:has([href*="customization-service"]) .cart-item__price-wrapper {
-  display: none !important;
-}
-
-/* Style service product line to look like an addon */
-.cart-item:has([href*="product-customization"]),
-.cart-item:has([href*="customization-service"]) {
-  background: #f0f8ff !important;
-  border-left: 3px solid #4CAF50 !important;
-  padding-left: 10px !important;
-  margin: 5px 0 !important;
-}
-
-/* Make service product title look like an addon */
-.cart-item [href*="product-customization"],
-.cart-item [href*="customization-service"] {
-  font-weight: 600 !important;
-  color: #2e7d32 !important;
-}
-
-/* Add checkmark before service product */
-.cart-item [href*="product-customization"]::before,
-.cart-item [href*="customization-service"]::before {
-  content: "✓ ";
-  color: #4CAF50;
-  font-weight: bold;
-  margin-right: 5px;
-}
-
-/* Hide properties that start with underscore */
-.cart-item__property[data-cart-item-property-name^="_"],
-.line-item-property__field:has([data-property-name^="_"]) {
-  display: none !important;
-}
-
-/* Alternative: completely hide the service product if CSS above doesn't work */
+/* Hide service product by class */
 .hidden-service-product {
   display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
 }
+
+/* Hide by product title */
+.cart-item:has([href*="product-customization"]),
+.cart-item:has([href*="customization-service"]),
+.cart__row:has([href*="product-customization"]),
+.cart__row:has([href*="customization-service"]),
+tr:has([href*="product-customization"]),
+tr:has([href*="customization-service"]) {
+  display: none !important;
+}
+
+/* Hide by title text content */
+.cart-item:has(a:contains("Product Customization")),
+.cart__row:has(a:contains("Product Customization")) {
+  display: none !important;
+}
+
+/* Addon pricing badge styling */
+.addon-pricing-badge {
+  display: inline-block !important;
+  padding: 6px 12px !important;
+  background: #4CAF50 !important;
+  color: white !important;
+  border-radius: 4px !important;
+  font-size: 0.85rem !important;
+  font-weight: 600 !important;
+  margin-top: 8px !important;
+}
+
