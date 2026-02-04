@@ -1,7 +1,5 @@
 /**
- * Cart Customizer - Hide Product Customization Service Items
- * This script automatically hides customization service line items in the cart
- * and groups customization details under the main product
+ * Cart Customizer - Hide Service Product and Display Addon Pricing Cleanly
  */
 
 (function() {
@@ -9,12 +7,10 @@
   
   console.log('🛒 Cart Customizer: Initializing...');
   
-  function hideCustomizationServiceItems() {
-    console.log('🔍 Scanning cart for customization service items...');
+  function customizeCart() {
+    console.log('🔍 Scanning cart items...');
     
-    let hiddenCount = 0;
-    
-    // Find all cart items using multiple selectors for compatibility
+    // Find all cart items
     const selectors = [
       '.cart-item',
       '.cart__row', 
@@ -36,7 +32,7 @@
     console.log(`📦 Found ${allItems.length} cart items`);
     
     allItems.forEach(item => {
-      // Find title element with multiple possible selectors
+      // Find title element
       const titleSelectors = [
         'a[href*="product"]',
         '.cart-item__name',
@@ -54,84 +50,120 @@
       }
       
       if (titleElement) {
-        const title = titleElement.textContent || titleElement.getAttribute('title') || '';
-        const href = titleElement.getAttribute('href') || '';
+        const title = titleElement.textContent || '';
         
-        // Check if this is a customization service item
-        if (title.includes('Product Customization') || 
-            title.includes('Customization Service') ||
-            href.includes('product-customization')) {
+        // Check if this is the service product
+        if (title.includes('Product Customization Service') || 
+            title.includes('Customization Service')) {
           
-          console.log('✅ Found customization service item:', title);
+          console.log('✅ Found service product - hiding it');
           
-          // Look for the "Title" property which contains the actual option name
-          const propertySelectors = [
-            '.product-option',
-            '[data-cart-item-property]',
-            '.cart-item__property',
-            'dd',
-            '.line-item-property'
-          ];
-          
-          let optionTitle = null;
-          propertySelectors.forEach(propSel => {
-            item.querySelectorAll(propSel).forEach(prop => {
-              const text = prop.textContent.trim();
-              if (text.startsWith('Title:')) {
-                optionTitle = text.replace('Title:', '').trim();
-              }
-            });
-          });
-          
-          if (optionTitle) {
-            console.log(`  📝 Replacing title with: ${optionTitle}`);
-            // Replace the product title with the option name
-            titleElement.textContent = optionTitle;
-            
-            // Hide the "Title:" property since we've used it
-            propertySelectors.forEach(propSel => {
-              item.querySelectorAll(propSel).forEach(prop => {
-                if (prop.textContent.trim().startsWith('Title:')) {
-                  prop.style.display = 'none';
-                }
-              });
-            });
-          }
-          
-          // Hide other internal properties
-          propertySelectors.forEach(propSel => {
-            item.querySelectorAll(propSel).forEach(prop => {
-              const text = prop.textContent.trim();
-              if (text.startsWith('_')) {
-                prop.style.display = 'none';
-              }
-            });
-          });
-          
-          hiddenCount++;
+          // Hide the entire line item
+          item.style.display = 'none';
+          item.classList.add('hidden-service-product');
         }
       }
     });
     
-    console.log(`✅ Processed ${hiddenCount} customization items`);
+    // Add addon pricing display to cart summary
+    addAddonSummary();
+  }
+  
+  function addAddonSummary() {
+    // Get cart data
+    fetch('/cart.js')
+      .then(response => response.json())
+      .then(cart => {
+        console.log('🛒 Cart loaded');
+        
+        // Find service product items
+        const serviceItems = cart.items.filter(item => 
+          item.title.includes('Product Customization Service') || 
+          item.title.includes('Customization Service')
+        );
+        
+        if (serviceItems.length === 0) {
+          console.log('ℹ️ No addon pricing');
+          return;
+        }
+        
+        // Calculate total addon price
+        let addonTotal = 0;
+        serviceItems.forEach(item => {
+          addonTotal += (item.final_line_price / 100);
+        });
+        
+        console.log('💰 Addon total:', addonTotal);
+        
+        // Find cart subtotal area
+        const subtotalSelectors = [
+          '.cart__footer',
+          '.cart-footer',
+          '.totals',
+          '[data-cart-subtotal]',
+          '.cart__subtotal'
+        ];
+        
+        let subtotalContainer = null;
+        for (const sel of subtotalSelectors) {
+          subtotalContainer = document.querySelector(sel);
+          if (subtotalContainer) {
+            console.log('✅ Found subtotal container:', sel);
+            break;
+          }
+        }
+        
+        if (subtotalContainer && !document.querySelector('.addon-pricing-summary')) {
+          // Create addon pricing summary
+          const addonSummary = document.createElement('div');
+          addonSummary.className = 'addon-pricing-summary';
+          addonSummary.style.cssText = `
+            padding: 15px;
+            background: #f0f8ff;
+            border: 2px solid #4CAF50;
+            border-radius: 8px;
+            margin-bottom: 15px;
+          `;
+          addonSummary.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-weight: 600; color: #2e7d32;">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" style="vertical-align: middle; margin-right: 5px;">
+                  <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
+                </svg>
+                Customization Add-ons Included
+              </span>
+              <span style="font-weight: 700; color: #2e7d32; font-size: 1.1rem;">
+                Rs. ${addonTotal.toFixed(2)}
+              </span>
+            </div>
+          `;
+          
+          // Insert at the beginning of subtotal container
+          subtotalContainer.insertBefore(addonSummary, subtotalContainer.firstChild);
+          
+          console.log('✅ Added addon pricing summary');
+        }
+      })
+      .catch(error => {
+        console.error('❌ Error:', error);
+      });
   }
   
   // Run on page load
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', hideCustomizationServiceItems);
+    document.addEventListener('DOMContentLoaded', customizeCart);
   } else {
-    hideCustomizationServiceItems();
+    customizeCart();
   }
   
-  // Run again after AJAX cart updates
-  document.addEventListener('cart:updated', hideCustomizationServiceItems);
-  document.addEventListener('cart:refresh', hideCustomizationServiceItems);
+  // Run after cart updates
+  document.addEventListener('cart:updated', customizeCart);
+  document.addEventListener('cart:refresh', customizeCart);
   
-  // Watch for DOM changes (for dynamic carts)
-  const observer = new MutationObserver(function(mutations) {
-    // Debounce to avoid running too frequently
+  // Watch for DOM changes
+  const observer = new MutationObserver(() => {
     clearTimeout(window.cartCustomizerTimeout);
-    window.cartCustomizerTimeout = setTimeout(hideCustomizationServiceItems, 100);
+    window.cartCustomizerTimeout = setTimeout(customizeCart, 100);
   });
   
   observer.observe(document.body, { 
@@ -139,5 +171,5 @@
     subtree: true 
   });
   
-  console.log('🎯 Cart Customizer: Ready');
+  console.log('✅ Cart Customizer: Ready');
 })();
