@@ -457,28 +457,87 @@
           
           console.log('🆔 Variant ID:', variantId);
           
-          // Add main product to cart with properties including addon total
-          const mainProductData = {
+          // Prepare items array for cart (Globo approach)
+          const items = [];
+          
+          // Add main product to cart with properties
+          items.push({
             id: variantId,
             quantity: 1,
-            properties: {
-              ...properties,
-              '_addon_total': prices.addonTotal.toFixed(2),
-              '_addon_currency': config.currency,
-              '_Note': `⚠️ Addon pricing (+${config.currency}${prices.addonTotal.toFixed(2)}) will be added at checkout`
+            properties: properties
+          });
+          
+          console.log('🛒 Adding main product with properties');
+          
+          // If there are addons, add the customization service product (GLOBO STYLE)
+          if (prices.addonTotal > 0) {
+            console.log('💎 Addon total:', prices.addonTotal, '- fetching service product...');
+            
+            // Fetch the customization service variant ID from backend
+            const serviceApiUrl = window.location.hostname === 'localhost' 
+              ? 'http://localhost:3000/api/customization-service'
+              : 'https://infinity-variation.onrender.com/api/customization-service';
+            
+            try {
+              const serviceResponse = await fetch(serviceApiUrl);
+              const serviceData = await serviceResponse.json();
+              
+              console.log('📦 Service response:', serviceData);
+              
+              if (serviceData.variantId) {
+                // Service product is Rs. 0.01, so quantity = addon total * 100
+                // For example: Rs. 20.00 addon = 2000 quantity of Rs. 0.01 product = Rs. 20.00
+                const serviceQuantity = Math.round(prices.addonTotal * 100);
+                
+                console.log('💰 Adding service product - Variant ID:', serviceData.variantId);
+                console.log('💰 Addon total:', prices.addonTotal, '- Service quantity:', serviceQuantity);
+                
+                // Add service product with quantity representing price (GLOBO METHOD)
+                items.push({
+                  id: parseInt(serviceData.variantId),
+                  quantity: serviceQuantity,
+                  properties: {
+                    '_is_addon': 'true',
+                    '_addon_for': config.productTitle,
+                    '_addon_display': `Customization Add-ons: ${config.currency}${prices.addonTotal.toFixed(2)}`,
+                    ...properties
+                  }
+                });
+                
+                console.log('✅ Service product added to items array');
+              } else {
+                console.warn('⚠️ Service product not configured:', serviceData.message);
+                
+                // Show helpful error message
+                alert(
+                  '⚠️ Customization Service Not Configured\n\n' +
+                  'The addon pricing feature requires a service product to be created.\n\n' +
+                  'Please run: node setup-service-product.js\n\n' +
+                  'Or contact your store administrator.'
+                );
+                addToCartBtn.textContent = 'Add to Cart';
+                addToCartBtn.disabled = false;
+                return;
+              }
+            } catch (serviceError) {
+              console.error('❌ Service response error:', serviceError);
+              alert('Could not load customization service. Please try again or contact support.');
+              addToCartBtn.textContent = 'Add to Cart';
+              addToCartBtn.disabled = false;
+              return;
             }
-          };
+          }
           
-          console.log('🛒 Adding main product with addon info:', mainProductData);
+          console.log('🚀 Adding items to cart:', items);
           
-          // Add to cart
+          // Add all items to cart at once (main product + service product)
           const response = await fetch('/cart/add.js', {
             method: 'POST',
             headers: { 
               'Content-Type': 'application/json',
               'Accept': 'application/json'
             },
-            body: JSON.stringify(mainProductData)
+            body: JSON.stringify({ items: items })
           });
           
           console.log('📡 Response status:', response.status);
