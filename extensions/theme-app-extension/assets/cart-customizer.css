@@ -1,56 +1,56 @@
 /**
  * Cart Customizer Styles
- * Hides Product Customization Service items and styles customization summaries
+ * Makes service product look clean in cart
  */
 
-/* Hide customization service items by various selectors */
-.cart-item[data-hidden-customization="true"],
-.cart__row[data-hidden-customization="true"],
-tr[data-hidden-customization="true"],
-[data-cart-item][data-hidden-customization="true"] {
-  display: none !important;
+/* Hide quantity column for service product */
+.cart-item:has([href*="product-customization"]) .cart-item__quantity,
+.cart-item:has([href*="customization-service"]) .cart-item__quantity,
+.cart__row:has([href*="product-customization"]) .cart__quantity,
+.cart__row:has([href*="customization-service"]) .cart__quantity {
   visibility: hidden !important;
-  opacity: 0 !important;
-  height: 0 !important;
-  overflow: hidden !important;
-  margin: 0 !important;
+  width: 0 !important;
   padding: 0 !important;
 }
 
-/* Customization summary box styling */
-.customization-summary {
-  background: #f8f9fa !important;
-  border: 1px solid #dee2e6 !important;
-  border-radius: 8px !important;
-  padding: 12px !important;
-  margin-top: 10px !important;
-  font-family: inherit !important;
+/* Hide unit price for service product */
+.cart-item:has([href*="product-customization"]) .cart-item__price-wrapper,
+.cart-item:has([href*="customization-service"]) .cart-item__price-wrapper {
+  display: none !important;
 }
 
-.customization-summary strong {
-  display: block !important;
-  margin-bottom: 8px !important;
-  font-size: 0.9rem !important;
-  color: #333 !important;
+/* Style service product line to look like an addon */
+.cart-item:has([href*="product-customization"]),
+.cart-item:has([href*="customization-service"]) {
+  background: #f0f8ff !important;
+  border-left: 3px solid #4CAF50 !important;
+  padding-left: 10px !important;
+  margin: 5px 0 !important;
+}
+
+/* Make service product title look like an addon */
+.cart-item [href*="product-customization"],
+.cart-item [href*="customization-service"] {
   font-weight: 600 !important;
+  color: #2e7d32 !important;
 }
 
-.customization-summary ul {
-  list-style: none !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  font-size: 0.85rem !important;
-  color: #666 !important;
+/* Add checkmark before service product */
+.cart-item [href*="product-customization"]::before,
+.cart-item [href*="customization-service"]::before {
+  content: "✓ ";
+  color: #4CAF50;
+  font-weight: bold;
+  margin-right: 5px;
 }
 
-.customization-summary li {
-  padding: 3px 0 !important;
-  line-height: 1.4 !important;
+/* Hide properties that start with underscore */
+.cart-item__property[data-cart-item-property-name^="_"],
+.line-item-property__field:has([data-property-name^="_"]) {
+  display: none !important;
 }
 
-/* Ensure customization items don't affect cart layout */
-.cart-item[data-hidden-customization="true"] + .cart-item,
-.cart__row[data-hidden-customization="true"] + .cart__row,
-tr[data-hidden-customization="true"] + tr {
-  border-top: 1px solid #e5e5e5;
+/* Alternative: completely hide the service product if CSS above doesn't work */
+.hidden-service-product {
+  display: none !important;
 }

@@ -492,6 +492,18 @@
                 console.log('💰 Adding service product - Variant ID:', serviceData.variantId);
                 console.log('💰 Addon total:', prices.addonTotal, '- Service quantity:', serviceQuantity);
                 
+                // Build a clean title showing what addons were selected
+                const addonsList = [];
+                Object.entries(properties).forEach(([key, value]) => {
+                  if (!key.startsWith('_') && value.includes('+')) {
+                    addonsList.push(value);
+                  }
+                });
+                
+                const addonTitle = addonsList.length > 0 
+                  ? `Customizations: ${addonsList.join(', ')}`
+                  : 'Customization Add-ons';
+                
                 // Add service product with quantity representing price (GLOBO METHOD)
                 items.push({
                   id: parseInt(serviceData.variantId),
@@ -499,8 +511,8 @@
                   properties: {
                     '_is_addon': 'true',
                     '_addon_for': config.productTitle,
-                    '_addon_display': `Customization Add-ons: ${config.currency}${prices.addonTotal.toFixed(2)}`,
-                    ...properties
+                    'Title': addonTitle,
+                    '_hide_quantity': 'true'
                   }
                 });
                 
