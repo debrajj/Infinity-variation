@@ -495,94 +495,64 @@
           const result = await response.json();
           console.log('✅ Product added:', result);
           
-          // Create draft order with customizations (Globo approach - no backend products needed)
+          // Add ONE customization service line item with total addon price
           if (prices.addonTotal > 0) {
             try {
-              console.log('💎 Creating draft order with customizations...');
+              console.log('💎 Adding customization service with total:', prices.addonTotal);
               
-              // Build customization line items
-              const customizationItems = [];
+              // Fetch customization service variant ID from API
+              const serviceResponse = await fetch('https://infinity-variation.onrender.com/api/customization-service');
+              const serviceData = await serviceResponse.json();
               
-              optionSet.options.forEach(opt => {
-                let optionPrice = 0;
-                let optionLabel = '';
-                
-                // Check if this option has a price
-                if (opt.type === 'radio' || opt.type === 'button' || opt.type === 'color_swatch') {
-                  const checked = form.querySelector(`input[name="option_${opt.id}"]:checked`);
-                  if (checked) {
-                    const value = opt.values.find(v => v.id === checked.value);
-                    if (value && value.addPrice > 0) {
-                      optionPrice = value.addPrice;
-                      optionLabel = opt.label;
-                    }
-                  }
-                } else if (opt.type === 'select' || opt.type === 'dropdown') {
-                  const select = form.querySelector(`select[data-option-id="${opt.id}"]`);
-                  if (select && select.value) {
-                    const value = opt.values.find(v => v.id === select.value);
-                    if (value && value.addPrice > 0) {
-                      optionPrice = value.addPrice;
-                      optionLabel = opt.label;
-                    }
-                  }
-                } else if (opt.type === 'checkbox') {
-                  const checked = form.querySelectorAll(`input[data-option-id="${opt.id}"]:checked`);
-                  checked.forEach(cb => {
-                    const value = opt.values.find(v => v.id === cb.value);
-                    if (value && value.addPrice > 0) {
-                      optionPrice += value.addPrice;
-                      optionLabel = opt.label;
-                    }
-                  });
-                }
-                
-                if (optionPrice > 0 && optionLabel) {
-                  customizationItems.push({
-                    title: optionLabel,
-                    price: optionPrice.toFixed(2),
-                    quantity: 1,
-                    properties: [
-                      { name: '_for_product', value: config.productTitle }
-                    ]
-                  });
-                }
-              });
+              console.log('📦 Service data:', serviceData);
               
-              if (customizationItems.length > 0) {
-                console.log('📦 Customization items:', customizationItems);
+              if (serviceData.variantId) {
+                const servicePrice = parseFloat(serviceData.price) || 1.00;
+                const quantity = Math.round(prices.addonTotal / servicePrice);
                 
-                // Create draft order via API
-                const draftOrderResponse = await fetch('https://infinity-variation.onrender.com/api/create-draft-order', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'X-Shopify-Shop-Domain': config.shop
-                  },
-                  body: JSON.stringify({
-                    mainProduct: {
-                      variantId: variantId,
-                      quantity: 1,
-                      properties: Object.entries(properties).map(([name, value]) => ({ name, value }))
-                    },
-                    customizations: customizationItems
-                  })
-                });
+                console.log('💰 Service price:', servicePrice);
+                console.log('💰 Addon total:', prices.addonTotal);
+                console.log('💰 Calculated quantity:', quantity);
                 
-                if (draftOrderResponse.ok) {
-                  const draftOrderData = await draftOrderResponse.json();
-                  console.log('✅ Draft order created:', draftOrderData);
+                if (quantity > 0) {
+                  const serviceProductData = {
+                    id: parseInt(serviceData.variantId),
+                    quantity: quantity,
+                    properties: {
+                      'Title': 'Printing',
+                      '_for_product': config.productTitle,
+                      '_addon_total': `${config.currency}${prices.addonTotal.toFixed(2)}`,
+                      ...properties
+                    }
+                  };
                   
-                  // Redirect to draft order checkout
-                  console.log('🔗 Redirecting to checkout:', draftOrderData.invoiceUrl);
-                  window.location.href = draftOrderData.invoiceUrl;
-                  return; // Don't redirect to cart
+                  console.log('📦 Adding service item:', serviceProductData);
+                  
+                  const serviceResp = await fetch('/cart/add.js', {
+                    method: 'POST',
+                    headers: { 
+                      'Content-Type': 'application/json',
+                      'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(serviceProductData)
+                  });
+                  
+                  if (serviceResp.ok) {
+                    const serviceResult = await serviceResp.json();
+                    console.log('✅ Customization service added:', serviceResult);
+                  } else {
+                    const errorText = await serviceResp.text();
+                    console.warn('⚠️ Could not add customization service:', errorText);
+                  }
                 } else {
-                  console.warn('⚠️ Could not create draft order, falling back to cart');
+                  console.warn('⚠️ Invalid quantity calculated:', quantity);
                 }
+              } else {
+                console.log('⚠️ No customization service product configured');
               }
-            } catch (draftOrderError) {
-              console.warn('⚠️ Draft order failed, using cart instead:', draftOrderError);
+            } catch (serviceError) {
+              console.warn('⚠️ Could not add customization service:', serviceError);
+              // Continue anyway - main product is added
             }
           }
           
