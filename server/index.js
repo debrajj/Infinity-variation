@@ -306,7 +306,9 @@ app.post('/api/create-draft-order', async (req, res) => {
 
 // Get customization service product variant ID
 app.get('/api/customization-service', async (req, res) => {
+  console.log('🔍 GET /api/customization-service called');
   let variantId = process.env.CUSTOMIZATION_SERVICE_VARIANT_ID;
+  console.log('📦 Variant ID from env:', variantId);
   
   // If not configured, try to create it automatically
   if (!variantId) {
