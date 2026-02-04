@@ -330,20 +330,19 @@ app.get('/api/customization-service', async (req, res) => {
             vendor: 'Infinite Options',
             product_type: 'Service',
             status: 'active',
-            published: true,
+            published_at: new Date().toISOString(),
+            published_scope: 'global',
             tags: 'customization-service,hidden,app-managed',
             variants: [{
               price: '1.00',
+              sku: 'CUSTOMIZATION-SERVICE',
               inventory_management: null,
               inventory_policy: 'continue',
+              fulfillment_service: 'manual',
               requires_shipping: false,
               taxable: false,
               weight: 0,
               weight_unit: 'kg'
-            }],
-            options: [{
-              name: 'Title',
-              values: ['Default']
             }]
           }
         };
