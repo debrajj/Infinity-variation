@@ -325,17 +325,17 @@ app.get('/api/customization-service', async (req, res) => {
         // Create the product via Shopify API
         const productData = {
           product: {
-            title: 'Product Customization',
-            body_html: '<p>Service fee for product customizations. This product is automatically managed by the app.</p>',
+            title: 'Product Customization Service',
+            body_html: '<p>Customization add-ons for your products. Price is calculated automatically.</p>',
             vendor: 'Infinite Options',
             product_type: 'Service',
             status: 'active',
             published_at: new Date().toISOString(),
             published_scope: 'global',
-            tags: 'customization-service,hidden,app-managed',
+            tags: 'customization-service,app-managed',
             variants: [{
-              price: '1.00',
-              sku: 'CUSTOMIZATION-SERVICE',
+              price: '0.01',
+              sku: 'CUSTOMIZATION-ADDON',
               inventory_management: null,
               inventory_policy: 'continue',
               fulfillment_service: 'manual',
@@ -369,7 +369,7 @@ app.get('/api/customization-service', async (req, res) => {
           
           res.json({ 
             variantId,
-            price: 1.00,
+            price: 0.01,
             autoCreated: true,
             message: 'Customization service product created automatically! Add CUSTOMIZATION_SERVICE_VARIANT_ID=' + variantId + ' to your environment to persist.'
           });
@@ -388,8 +388,8 @@ app.get('/api/customization-service', async (req, res) => {
   }
   
   if (variantId) {
-    // Return variant ID and price (default ₹1.00)
-    const price = parseFloat(process.env.CUSTOMIZATION_SERVICE_PRICE || '1.00');
+    // Return variant ID and price (default Rs. 0.01)
+    const price = parseFloat(process.env.CUSTOMIZATION_SERVICE_PRICE || '0.01');
     res.json({ 
       variantId, 
       price,

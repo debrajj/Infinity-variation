@@ -1,0 +1,151 @@
+{% comment %}
+  Cart Addon Pricing Display
+  Shows customization addon pricing in cart like Globo
+{% endcomment %}
+
+<style>
+  .cart-addon-service {
+    display: none !important;
+  }
+  
+  .cart-addon-pricing-display {
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin: 15px 0;
+  }
+  
+  .cart-addon-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    font-size: 0.95rem;
+  }
+  
+  .cart-addon-row.total {
+    border-top: 2px solid #dee2e6;
+    padding-top: 10px;
+    margin-top: 10px;
+    font-weight: 700;
+    font-size: 1.1rem;
+  }
+</style>
+
+<script>
+(function() {
+  'use strict';
+  
+  console.log('💰 Cart Addon Pricing: Initializing...');
+  
+  function updateCartDisplay() {
+    fetch('/cart.js')
+      .then(response => response.json())
+      .then(cart => {
+        console.log('🛒 Cart data:', cart);
+        
+        // Find service product line items (marked with _is_addon property)
+        const serviceItems = cart.items.filter(item => 
+          item.properties && item.properties._is_addon === 'true'
+        );
+        
+        console.log('💎 Service items found:', serviceItems.length);
+        
+        if (serviceItems.length > 0) {
+          // Hide service product rows in cart
+          serviceItems.forEach(item => {
+            const itemElements = document.querySelectorAll(`[data-line-item-key="${item.key}"], [data-cart-item-key="${item.key}"]`);
+            itemElements.forEach(el => {
+              el.classList.add('cart-addon-service');
+              el.style.display = 'none';
+            });
+          });
+          
+          // Calculate total addon price
+          let addonTotal = 0;
+          serviceItems.forEach(item => {
+            addonTotal += (item.final_price * item.quantity) / 100; // Convert from cents
+          });
+          
+          console.log('💰 Total addon price:', addonTotal);
+          
+          // Find cart subtotal element
+          const subtotalSelectors = [
+            '.cart__subtotal',
+            '.cart-subtotal',
+            '[data-cart-subtotal]',
+            '.totals__subtotal',
+            '.cart__footer'
+          ];
+          
+          let subtotalContainer = null;
+          for (const selector of subtotalSelectors) {
+            subtotalContainer = document.querySelector(selector);
+            if (subtotalContainer) {
+              console.log('✅ Found subtotal container:', selector);
+              break;
+            }
+          }
+          
+          if (subtotalContainer && !document.querySelector('.cart-addon-pricing-display')) {
+            // Get currency symbol from cart
+            const currency = cart.currency || 'Rs.';
+            
+            // Calculate base product total (excluding service items)
+            const baseTotal = cart.items
+              .filter(item => !item.properties || item.properties._is_addon !== 'true')
+              .reduce((sum, item) => sum + (item.final_line_price / 100), 0);
+            
+            const finalTotal = baseTotal + addonTotal;
+            
+            // Create addon display
+            const addonDisplay = document.createElement('div');
+            addonDisplay.className = 'cart-addon-pricing-display';
+            addonDisplay.innerHTML = `
+              <div class="cart-addon-row">
+                <span>Product Subtotal:</span>
+                <span>${currency}${baseTotal.toFixed(2)}</span>
+              </div>
+              <div class="cart-addon-row">
+                <span style="color: #e64a5d;">Customization Add-ons:</span>
+                <span style="color: #e64a5d; font-weight: 600;">+${currency}${addonTotal.toFixed(2)}</span>
+              </div>
+              <div class="cart-addon-row total">
+                <span>Total:</span>
+                <span style="color: #e64a5d;">${currency}${finalTotal.toFixed(2)}</span>
+              </div>
+            `;
+            
+            // Insert before checkout button or at end of subtotal container
+            const checkoutButton = subtotalContainer.querySelector('button[name="checkout"], .cart__checkout-button, [data-cart-checkout]');
+            if (checkoutButton) {
+              checkoutButton.parentNode.insertBefore(addonDisplay, checkoutButton);
+            } else {
+              subtotalContainer.appendChild(addonDisplay);
+            }
+            
+            console.log('✅ Addon pricing display added');
+          }
+        }
+      })
+      .catch(error => {
+        console.error('❌ Error updating cart display:', error);
+      });
+  }
+  
+  // Run on page load
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', updateCartDisplay);
+  } else {
+    updateCartDisplay();
+  }
+  
+  // Run after cart updates
+  document.addEventListener('cart:updated', updateCartDisplay);
+  
+  // Watch for DOM changes (for AJAX carts)
+  const observer = new MutationObserver(updateCartDisplay);
+  observer.observe(document.body, { childList: true, subtree: true });
+  
+  console.log('✅ Cart Addon Pricing: Ready');
+})();
+</script>

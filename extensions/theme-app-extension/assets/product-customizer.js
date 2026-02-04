@@ -398,14 +398,12 @@
         console.log('✅ All required fields filled');
         
         // Collect all selections
-        const selections = {};
         const properties = {};
         
         optionSet.options.forEach(opt => {
           if (opt.type === 'text_input' || opt.type === 'text' || opt.type === 'textarea' || opt.type === 'number') {
             const input = form.querySelector(`input[data-option-id="${opt.id}"], textarea[data-option-id="${opt.id}"]`);
             if (input && input.value) {
-              selections[opt.id] = input.value;
               properties[opt.label] = input.value;
             }
           } else if (opt.type === 'radio' || opt.type === 'button' || opt.type === 'color_swatch') {
@@ -413,8 +411,7 @@
             if (checked) {
               const value = opt.values.find(v => v.id === checked.value);
               if (value) {
-                selections[opt.id] = value;
-                properties[opt.label] = value.label + (value.addPrice > 0 ? ` (+${value.addPrice.toFixed(2)})` : '');
+                properties[opt.label] = value.label + (value.addPrice > 0 ? ` (+${config.currency}${value.addPrice.toFixed(2)})` : '');
               }
             }
           } else if (opt.type === 'select' || opt.type === 'dropdown') {
@@ -422,8 +419,7 @@
             if (select && select.value) {
               const value = opt.values.find(v => v.id === select.value);
               if (value) {
-                selections[opt.id] = value;
-                properties[opt.label] = value.label + (value.addPrice > 0 ? ` (+${value.addPrice.toFixed(2)})` : '');
+                properties[opt.label] = value.label + (value.addPrice > 0 ? ` (+${config.currency}${value.addPrice.toFixed(2)})` : '');
               }
             }
           } else if (opt.type === 'checkbox') {
@@ -433,7 +429,7 @@
               checked.forEach(cb => {
                 const value = opt.values.find(v => v.id === cb.value);
                 if (value) {
-                  selectedValues.push(value.label + (value.addPrice > 0 ? ` (+${value.addPrice.toFixed(2)})` : ''));
+                  selectedValues.push(value.label + (value.addPrice > 0 ? ` (+${config.currency}${value.addPrice.toFixed(2)})` : ''));
                 }
               });
               properties[opt.label] = selectedValues.join(', ');
@@ -441,7 +437,6 @@
           }
         });
         
-        console.log('📝 Selections:', selections);
         console.log('📋 Properties:', properties);
         
         // Disable button during processing
@@ -462,26 +457,80 @@
           
           console.log('🆔 Variant ID:', variantId);
           
+          // Prepare items array for cart
+          const items = [];
+          
           // Add main product to cart with properties
-          const mainProductData = {
+          items.push({
             id: variantId,
             quantity: 1,
-            properties: {
-              ...properties,
-              '_customization_total': `${prices.addonTotal.toFixed(2)}`,
-              '_option_set': optionSet.name
+            properties: properties
+          });
+          
+          console.log('🛒 Adding main product with properties');
+          
+          // If there are addons, add the customization service product
+          if (prices.addonTotal > 0) {
+            console.log('💎 Addon total:', prices.addonTotal, '- fetching service product...');
+            
+            // Fetch the customization service variant ID from backend
+            const serviceApiUrl = window.location.hostname === 'localhost' 
+              ? 'http://localhost:3000/api/customization-service'
+              : 'https://infinity-variation.onrender.com/api/customization-service';
+            
+            try {
+              const serviceResponse = await fetch(serviceApiUrl);
+              const serviceData = await serviceResponse.json();
+              
+              console.log('📦 Service response:', serviceData);
+              
+              if (serviceData.variantId) {
+                // Service product is Rs. 0.01, so quantity = addon total * 100
+                // For example: Rs. 20.00 addon = 2000 quantity of Rs. 0.01 product = Rs. 20.00
+                const serviceQuantity = Math.round(prices.addonTotal * 100);
+                
+                console.log('💰 Adding service product - Variant ID:', serviceData.variantId);
+                console.log('💰 Addon total:', prices.addonTotal, '- Service quantity:', serviceQuantity);
+                
+                // Add service product with quantity representing price
+                items.push({
+                  id: parseInt(serviceData.variantId),
+                  quantity: serviceQuantity,
+                  properties: {
+                    '_is_addon': 'true',
+                    '_addon_for': config.productTitle,
+                    '_addon_display': `${config.currency}${prices.addonTotal.toFixed(2)}`,
+                    ...properties
+                  }
+                });
+                
+                console.log('✅ Service product added to items array');
+              } else {
+                console.warn('⚠️ Service product not configured:', serviceData.message);
+                alert('Customization service not configured. Please contact store admin.\n\n' + (serviceData.message || ''));
+                addToCartBtn.textContent = 'Add to Cart';
+                addToCartBtn.disabled = false;
+                return;
+              }
+            } catch (serviceError) {
+              console.error('❌ Service response error:', serviceError);
+              alert('Could not load customization service. Please try again.');
+              addToCartBtn.textContent = 'Add to Cart';
+              addToCartBtn.disabled = false;
+              return;
             }
-          };
+          }
           
-          console.log('🛒 Adding main product:', mainProductData);
+          console.log('🚀 Adding items to cart:', items);
           
+          // Add all items to cart at once
           const response = await fetch('/cart/add.js', {
             method: 'POST',
             headers: { 
               'Content-Type': 'application/json',
               'Accept': 'application/json'
             },
-            body: JSON.stringify(mainProductData)
+            body: JSON.stringify({ items: items })
           });
           
           console.log('📡 Response status:', response.status);
@@ -489,57 +538,19 @@
           if (!response.ok) {
             const errorText = await response.text();
             console.error('❌ Response error:', errorText);
-            throw new Error('Failed to add product to cart: ' + errorText);
+            
+            let errorData;
+            try {
+              errorData = JSON.parse(errorText);
+            } catch (e) {
+              errorData = { message: errorText };
+            }
+            
+            throw new Error('Could not add to cart: ' + (errorData.description || errorData.message || errorText));
           }
           
           const result = await response.json();
-          console.log('✅ Product added:', result);
-          
-          // Add customization service product for addon pricing
-          if (prices.addonTotal > 0) {
-            try {
-              console.log('💎 Adding customization service...');
-              
-              const serviceResponse = await fetch('https://infinity-variation.onrender.com/api/customization-service');
-              const serviceData = await serviceResponse.json();
-              
-              console.log('📦 Service data:', serviceData);
-              
-              if (serviceData.variantId) {
-                const servicePrice = parseFloat(serviceData.price) || 1.00;
-                const quantity = Math.round(prices.addonTotal / servicePrice);
-                
-                console.log('💰 Adding service product - Quantity:', quantity, 'Price:', servicePrice);
-                
-                const serviceProductData = {
-                  id: parseInt(serviceData.variantId),
-                  quantity: quantity,
-                  properties: {
-                    'Title': 'Printing',
-                    '_for_product': config.productTitle
-                  }
-                };
-                
-                const serviceResp = await fetch('/cart/add.js', {
-                  method: 'POST',
-                  headers: { 
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                  },
-                  body: JSON.stringify(serviceProductData)
-                });
-                
-                if (serviceResp.ok) {
-                  console.log('✅ Customization service added');
-                } else {
-                  const errorText = await serviceResp.text();
-                  console.error('❌ Service product error:', errorText);
-                }
-              }
-            } catch (error) {
-              console.error('❌ Error adding service:', error);
-            }
-          }
+          console.log('✅ Items added to cart:', result);
           
           // Success! Redirect to cart
           console.log('✅ Success! Redirecting to cart...');
