@@ -355,6 +355,10 @@ app.get('/api/customization-service', async (req, res) => {
           }
         }, JSON.stringify(productData));
         
+        console.log('📡 Create product response status:', createResponse.status);
+        console.log('📡 Create product response ok:', createResponse.ok);
+        console.log('📡 Create product response data:', JSON.stringify(createResponse.data, null, 2));
+        
         if (createResponse.ok && createResponse.data.product) {
           variantId = createResponse.data.product.variants[0].id.toString();
           console.log('✅ Created customization service product, variant ID:', variantId);
