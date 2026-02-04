@@ -543,13 +543,31 @@
                   });
                   
                   console.log('📡 Service response status:', serviceResp.status);
+                  console.log('📡 Service response ok:', serviceResp.ok);
                   
                   if (serviceResp.ok) {
                     const serviceResult = await serviceResp.json();
                     console.log('✅ Customization service added:', serviceResult);
                   } else {
                     const errorText = await serviceResp.text();
-                    console.error('❌ Could not add customization service:', errorText);
+                    console.error('❌ Full error response:', errorText);
+                    console.error('❌ Response status:', serviceResp.status);
+                    console.error('❌ Response statusText:', serviceResp.statusText);
+                    
+                    // Try to parse as JSON
+                    try {
+                      const errorJson = JSON.parse(errorText);
+                      console.error('❌ Error details:', errorJson);
+                      if (errorJson.description) {
+                        console.error('❌ Error description:', errorJson.description);
+                      }
+                      if (errorJson.message) {
+                        console.error('❌ Error message:', errorJson.message);
+                      }
+                    } catch (e) {
+                      console.error('❌ Could not parse error as JSON');
+                    }
+                    
                     console.warn('⚠️ Could not add customization service:', errorText);
                   }
                 } else {
