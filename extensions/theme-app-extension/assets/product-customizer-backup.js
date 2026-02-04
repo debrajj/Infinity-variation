@@ -495,94 +495,110 @@
           const result = await response.json();
           console.log('✅ Product added:', result);
           
-          // Create draft order with customizations (Globo approach - no backend products needed)
+          // Add each customization option with a price as a separate line item
           if (prices.addonTotal > 0) {
             try {
-              console.log('💎 Creating draft order with customizations...');
+              console.log('💎 Adding customization options as separate line items...');
               
-              // Build customization line items
-              const customizationItems = [];
+              // Fetch customization service variant ID from API
+              const serviceResponse = await fetch('https://infinity-variation.onrender.com/api/customization-service');
+              const serviceData = await serviceResponse.json();
               
-              optionSet.options.forEach(opt => {
-                let optionPrice = 0;
-                let optionLabel = '';
-                
-                // Check if this option has a price
-                if (opt.type === 'radio' || opt.type === 'button' || opt.type === 'color_swatch') {
-                  const checked = form.querySelector(`input[name="option_${opt.id}"]:checked`);
-                  if (checked) {
-                    const value = opt.values.find(v => v.id === checked.value);
-                    if (value && value.addPrice > 0) {
-                      optionPrice = value.addPrice;
-                      optionLabel = opt.label;
-                    }
-                  }
-                } else if (opt.type === 'select' || opt.type === 'dropdown') {
-                  const select = form.querySelector(`select[data-option-id="${opt.id}"]`);
-                  if (select && select.value) {
-                    const value = opt.values.find(v => v.id === select.value);
-                    if (value && value.addPrice > 0) {
-                      optionPrice = value.addPrice;
-                      optionLabel = opt.label;
-                    }
-                  }
-                } else if (opt.type === 'checkbox') {
-                  const checked = form.querySelectorAll(`input[data-option-id="${opt.id}"]:checked`);
-                  checked.forEach(cb => {
-                    const value = opt.values.find(v => v.id === cb.value);
-                    if (value && value.addPrice > 0) {
-                      optionPrice += value.addPrice;
-                      optionLabel = opt.label;
-                    }
-                  });
-                }
-                
-                if (optionPrice > 0 && optionLabel) {
-                  customizationItems.push({
-                    title: optionLabel,
-                    price: optionPrice.toFixed(2),
-                    quantity: 1,
-                    properties: [
-                      { name: '_for_product', value: config.productTitle }
-                    ]
-                  });
-                }
-              });
+              console.log('📦 Service data:', serviceData);
               
-              if (customizationItems.length > 0) {
-                console.log('📦 Customization items:', customizationItems);
-                
-                // Create draft order via API
-                const draftOrderResponse = await fetch('https://infinity-variation.onrender.com/api/create-draft-order', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'X-Shopify-Shop-Domain': config.shop
-                  },
-                  body: JSON.stringify({
-                    mainProduct: {
-                      variantId: variantId,
-                      quantity: 1,
-                      properties: Object.entries(properties).map(([name, value]) => ({ name, value }))
-                    },
-                    customizations: customizationItems
-                  })
-                });
-                
-                if (draftOrderResponse.ok) {
-                  const draftOrderData = await draftOrderResponse.json();
-                  console.log('✅ Draft order created:', draftOrderData);
+              if (serviceData.variantId) {
+                // Add each option with a price as a separate cart item
+                for (const opt of optionSet.options) {
+                  let optionPrice = 0;
+                  let optionLabel = '';
                   
-                  // Redirect to draft order checkout
-                  console.log('🔗 Redirecting to checkout:', draftOrderData.invoiceUrl);
-                  window.location.href = draftOrderData.invoiceUrl;
-                  return; // Don't redirect to cart
-                } else {
-                  console.warn('⚠️ Could not create draft order, falling back to cart');
+                  // Check if this option has a price
+                  if (opt.type === 'radio' || opt.type === 'button' || opt.type === 'color_swatch') {
+                    const checked = form.querySelector(`input[name="option_${opt.id}"]:checked`);
+                    if (checked) {
+                      const value = opt.values.find(v => v.id === checked.value);
+                      if (value && value.addPrice > 0) {
+                        optionPrice = value.addPrice;
+                        optionLabel = opt.label;
+                      }
+                    }
+                  } else if (opt.type === 'select' || opt.type === 'dropdown') {
+                    const select = form.querySelector(`select[data-option-id="${opt.id}"]`);
+                    if (select && select.value) {
+                      const value = opt.values.find(v => v.id === select.value);
+                      if (value && value.addPrice > 0) {
+                        optionPrice = value.addPrice;
+                        optionLabel = opt.label;
+                      }
+                    }
+                  } else if (opt.type === 'checkbox') {
+                    const checked = form.querySelectorAll(`input[data-option-id="${opt.id}"]:checked`);
+                    checked.forEach(cb => {
+                      const value = opt.values.find(v => v.id === cb.value);
+                      if (value && value.addPrice > 0) {
+                        optionPrice += value.addPrice;
+                        optionLabel = opt.label;
+                      }
+                    });
+                  }
+                  
+                  // If this option has a price, add it as a separate line item
+                  if (optionPrice > 0 && optionLabel) {
+                    console.log(`💰 Adding option: ${optionLabel} - ${config.currency}${optionPrice}`);
+                    
+                    // Try to get a specific product for this option type
+                    let optionServiceData = serviceData;
+                    try {
+                      const optionServiceResponse = await fetch(`https://infinity-variation.onrender.com/api/customization-service?optionName=${encodeURIComponent(optionLabel)}`);
+                      const optionSpecificData = await optionServiceResponse.json();
+                      if (optionSpecificData.variantId) {
+                        optionServiceData = optionSpecificData;
+                        console.log(`  ✅ Using specific product for ${optionLabel}:`, optionSpecificData.productTitle);
+                      }
+                    } catch (e) {
+                      console.log(`  ⚠️ Using default service product for ${optionLabel}`);
+                    }
+                    
+                    const servicePrice = parseFloat(optionServiceData.price) || 1.00;
+                    const quantity = Math.round(optionPrice / servicePrice);
+                    
+                    const serviceProductData = {
+                      id: parseInt(serviceData.variantId),
+                      quantity: quantity,
+                      properties: {
+                        'Title': optionLabel,
+                        '_option_name': optionLabel,
+                        '_is_addon': 'true',
+                        '_for_product': config.productTitle
+                      }
+                    };
+                    
+                    console.log('📦 Adding service item:', serviceProductData);
+                    
+                    const serviceResp = await fetch('/cart/add.js', {
+                      method: 'POST',
+                      headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                      },
+                      body: JSON.stringify(serviceProductData)
+                    });
+                    
+                    if (serviceResp.ok) {
+                      const serviceResult = await serviceResp.json();
+                      console.log(`✅ Added: ${optionLabel}`);
+                    } else {
+                      const errorText = await serviceResp.text();
+                      console.warn(`⚠️ Could not add ${optionLabel}:`, errorText);
+                    }
+                  }
                 }
+              } else {
+                console.log('⚠️ No customization service product configured');
               }
-            } catch (draftOrderError) {
-              console.warn('⚠️ Draft order failed, using cart instead:', draftOrderError);
+            } catch (serviceError) {
+              console.warn('⚠️ Could not add customization options:', serviceError);
+              // Continue anyway - main product is added
             }
           }
           

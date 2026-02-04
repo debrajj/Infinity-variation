@@ -1,0 +1,56 @@
+/**
+ * Cart Customizer Styles
+ * Hides Product Customization Service items and styles customization summaries
+ */
+
+/* Hide customization service items by various selectors */
+.cart-item[data-hidden-customization="true"],
+.cart__row[data-hidden-customization="true"],
+tr[data-hidden-customization="true"],
+[data-cart-item][data-hidden-customization="true"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Customization summary box styling */
+.customization-summary {
+  background: #f8f9fa !important;
+  border: 1px solid #dee2e6 !important;
+  border-radius: 8px !important;
+  padding: 12px !important;
+  margin-top: 10px !important;
+  font-family: inherit !important;
+}
+
+.customization-summary strong {
+  display: block !important;
+  margin-bottom: 8px !important;
+  font-size: 0.9rem !important;
+  color: #333 !important;
+  font-weight: 600 !important;
+}
+
+.customization-summary ul {
+  list-style: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  font-size: 0.85rem !important;
+  color: #666 !important;
+}
+
+.customization-summary li {
+  padding: 3px 0 !important;
+  line-height: 1.4 !important;
+}
+
+/* Ensure customization items don't affect cart layout */
+.cart-item[data-hidden-customization="true"] + .cart-item,
+.cart__row[data-hidden-customization="true"] + .cart__row,
+tr[data-hidden-customization="true"] + tr {
+  border-top: 1px solid #e5e5e5;
+}

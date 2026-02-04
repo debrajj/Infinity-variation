@@ -3,6 +3,12 @@
   This block adds infinite product options to any product page
 {% endcomment %}
 
+{%- comment -%} Load cart customizer on cart pages {%- endcomment -%}
+{% if template == 'cart' or request.page_type == 'cart' %}
+  <link rel="stylesheet" href="{{ 'cart-customizer.css' | asset_url }}">
+  <script src="{{ 'cart-customizer.js' | asset_url }}" defer></script>
+{% endif %}
+
 {% schema %}
 {
   "name": "Product Customizer",

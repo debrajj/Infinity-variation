@@ -1,0 +1,10 @@
+{% comment %}
+  Cart Customizer Snippet
+  Loads CSS and JS to hide Product Customization Service items
+  and group customization details under main products
+{% endcomment %}
+
+{% if template == 'cart' or request.page_type == 'cart' %}
+  {{ 'cart-customizer.css' | asset_url | stylesheet_tag }}
+  <script src="{{ 'cart-customizer.js' | asset_url }}" defer></script>
+{% endif %}

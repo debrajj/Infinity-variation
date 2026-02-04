@@ -217,6 +217,93 @@ app.delete('/api/option-sets/:id', (req, res) => {
   res.json({ success: true, id });
 });
 
+// Create draft order with custom line items (Globo approach)
+app.post('/api/create-draft-order', async (req, res) => {
+  try {
+    const { mainProduct, customizations, customer } = req.body;
+    
+    const shop = req.headers['x-shopify-shop-domain'] || process.env.SHOPIFY_SHOP_DOMAIN;
+    const accessToken = req.headers['authorization']?.replace('Bearer ', '') || process.env.SHOPIFY_ACCESS_TOKEN;
+    
+    if (!shop || !accessToken) {
+      return res.status(400).json({ error: 'Missing shop or access token' });
+    }
+    
+    console.log('📝 Creating draft order for shop:', shop);
+    console.log('📦 Main product:', mainProduct);
+    console.log('🎨 Customizations:', customizations);
+    
+    // Build line items array
+    const lineItems = [
+      {
+        variant_id: mainProduct.variantId,
+        quantity: mainProduct.quantity || 1,
+        properties: mainProduct.properties || []
+      }
+    ];
+    
+    // Add customization line items
+    if (customizations && customizations.length > 0) {
+      customizations.forEach(custom => {
+        lineItems.push({
+          title: custom.title,
+          price: custom.price,
+          quantity: custom.quantity || 1,
+          taxable: false,
+          requires_shipping: false,
+          properties: custom.properties || []
+        });
+      });
+    }
+    
+    // Create draft order
+    const draftOrderData = {
+      draft_order: {
+        line_items: lineItems,
+        customer: customer || {},
+        use_customer_default_address: true,
+        note: 'Created by Infinite Product Options app'
+      }
+    };
+    
+    console.log('🚀 Creating draft order:', JSON.stringify(draftOrderData, null, 2));
+    
+    const response = await httpsRequest(`https://${shop}/admin/api/2024-01/draft_orders.json`, {
+      method: 'POST',
+      headers: {
+        'X-Shopify-Access-Token': accessToken,
+        'Content-Type': 'application/json'
+      }
+    }, JSON.stringify(draftOrderData));
+    
+    if (!response.ok) {
+      console.error('❌ Failed to create draft order:', response);
+      return res.status(500).json({ 
+        error: 'Failed to create draft order',
+        details: response.data 
+      });
+    }
+    
+    const draftOrder = response.data.draft_order;
+    console.log('✅ Draft order created:', draftOrder.id);
+    console.log('🔗 Invoice URL:', draftOrder.invoice_url);
+    
+    res.json({
+      success: true,
+      draftOrderId: draftOrder.id,
+      invoiceUrl: draftOrder.invoice_url,
+      checkoutUrl: `https://${shop}/checkout/${draftOrder.id}`
+    });
+    
+  } catch (error) {
+    console.error('❌ Error creating draft order:', error);
+    res.status(500).json({ 
+      error: 'Failed to create draft order',
+      message: error.message 
+    });
+  }
+});
+
 // Get customization service product variant ID
 app.get('/api/customization-service', async (req, res) => {
   let variantId = process.env.CUSTOMIZATION_SERVICE_VARIANT_ID;
@@ -236,7 +323,7 @@ app.get('/api/customization-service', async (req, res) => {
         // Create the product via Shopify API
         const productData = {
           product: {
-            title: 'Product Customization Service',
+            title: 'Product Customization',
             body_html: '<p>Automatic service fee for product customizations.</p><p><strong>This product is managed by the Infinite Product Options app. Do not purchase separately.</strong></p>',
             vendor: 'Infinite Options',
             product_type: 'Service',
