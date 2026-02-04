@@ -494,6 +494,8 @@
           
           const result = await response.json();
           console.log('✅ Product added:', result);
+          console.log('💰 Addon total:', prices.addonTotal);
+          console.log('🔍 Checking if we need to add customization service...');
           
           // Add ONE customization service line item with total addon price
           if (prices.addonTotal > 0) {
@@ -501,10 +503,13 @@
               console.log('💎 Adding customization service with total:', prices.addonTotal);
               
               // Fetch customization service variant ID from API
+              console.log('🌐 Fetching from: https://infinity-variation.onrender.com/api/customization-service');
               const serviceResponse = await fetch('https://infinity-variation.onrender.com/api/customization-service');
               const serviceData = await serviceResponse.json();
               
               console.log('📦 Service data:', serviceData);
+              console.log('📦 Variant ID:', serviceData.variantId);
+              console.log('📦 Price:', serviceData.price);
               
               if (serviceData.variantId) {
                 const servicePrice = parseFloat(serviceData.price) || 1.00;
@@ -537,23 +542,30 @@
                     body: JSON.stringify(serviceProductData)
                   });
                   
+                  console.log('📡 Service response status:', serviceResp.status);
+                  
                   if (serviceResp.ok) {
                     const serviceResult = await serviceResp.json();
                     console.log('✅ Customization service added:', serviceResult);
                   } else {
                     const errorText = await serviceResp.text();
+                    console.error('❌ Could not add customization service:', errorText);
                     console.warn('⚠️ Could not add customization service:', errorText);
                   }
                 } else {
                   console.warn('⚠️ Invalid quantity calculated:', quantity);
                 }
               } else {
+                console.error('❌ No variant ID returned from API');
                 console.log('⚠️ No customization service product configured');
               }
             } catch (serviceError) {
+              console.error('❌ Error in customization service:', serviceError);
               console.warn('⚠️ Could not add customization service:', serviceError);
               // Continue anyway - main product is added
             }
+          } else {
+            console.log('ℹ️ No addons selected, skipping customization service');
           }
           
           // Success! Redirect to cart
