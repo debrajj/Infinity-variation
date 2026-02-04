@@ -1,0 +1,115 @@
+{% comment %}
+  Hide Product Customization Service in Cart
+  This snippet hides the service product line item
+{% endcomment %}
+
+<style>
+/* Aggressive hiding of service product */
+.cart-item:has([href*="product-customization-service"]),
+.cart-item:has([href*="customization-service"]),
+.cart__row:has([href*="product-customization-service"]),
+.cart__row:has([href*="customization-service"]),
+tr:has([href*="product-customization-service"]),
+tr:has([href*="customization-service"]) {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Hide by checking if title contains the text */
+.cart-item,
+.cart__row,
+tr[data-line-item] {
+  &:has(a[href*="product-customization"]) {
+    display: none !important;
+  }
+}
+
+/* Fallback: hide by data attribute */
+[data-product-title*="Product Customization"],
+[data-product-title*="Customization Service"] {
+  display: none !important;
+}
+</style>
+
+<script>
+(function() {
+  'use strict';
+  
+  console.log('🚫 Hide Service Product: Starting...');
+  
+  function hideServiceProduct() {
+    let hiddenCount = 0;
+    
+    // Method 1: Find by link href
+    document.querySelectorAll('a[href*="product-customization"]').forEach(link => {
+      // Find the parent cart item (go up the DOM tree)
+      let parent = link.closest('.cart-item, .cart__row, tr, [data-cart-item], [class*="cart"]');
+      if (parent) {
+        parent.style.cssText = 'display: none !important; visibility: hidden !important; height: 0 !important; overflow: hidden !important; margin: 0 !important; padding: 0 !important; border: none !important;';
+        hiddenCount++;
+        console.log('✅ Hidden by href');
+      }
+    });
+    
+    // Method 2: Find by title text
+    document.querySelectorAll('.cart-item, .cart__row, tr[data-line-item], [data-cart-item]').forEach(item => {
+      const text = item.textContent || '';
+      if (text.includes('Product Customization Service') || text.includes('Customization Service')) {
+        item.style.cssText = 'display: none !important; visibility: hidden !important; height: 0 !important; overflow: hidden !important; margin: 0 !important; padding: 0 !important; border: none !important;';
+        hiddenCount++;
+        console.log('✅ Hidden by text');
+      }
+    });
+    
+    // Method 3: Find by product title in link
+    document.querySelectorAll('a').forEach(link => {
+      const title = link.textContent.trim();
+      if (title.includes('Product Customization Service')) {
+        let parent = link.closest('.cart-item, .cart__row, tr, [data-cart-item]');
+        if (parent) {
+          parent.style.cssText = 'display: none !important; visibility: hidden !important; height: 0 !important; overflow: hidden !important; margin: 0 !important; padding: 0 !important; border: none !important;';
+          hiddenCount++;
+          console.log('✅ Hidden by link text');
+        }
+      }
+    });
+    
+    if (hiddenCount > 0) {
+      console.log(`✅ Hidden ${hiddenCount} service product items`);
+    }
+  }
+  
+  // Run multiple times to catch dynamic content
+  hideServiceProduct();
+  setTimeout(hideServiceProduct, 50);
+  setTimeout(hideServiceProduct, 100);
+  setTimeout(hideServiceProduct, 200);
+  setTimeout(hideServiceProduct, 500);
+  setTimeout(hideServiceProduct, 1000);
+  setTimeout(hideServiceProduct, 2000);
+  
+  // Run on page load
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', hideServiceProduct);
+  }
+  
+  // Watch for DOM changes
+  const observer = new MutationObserver(() => {
+    clearTimeout(window.hideServiceTimeout);
+    window.hideServiceTimeout = setTimeout(hideServiceProduct, 50);
+  });
+  
+  observer.observe(document.body, { 
+    childList: true, 
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['class', 'style']
+  });
+  
+  console.log('✅ Hide Service Product: Active');
+})();
+</script>

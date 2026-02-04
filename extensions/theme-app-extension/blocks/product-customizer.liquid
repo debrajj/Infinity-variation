@@ -5,6 +5,7 @@
 
 {%- comment -%} Load cart customizer on cart pages {%- endcomment -%}
 {% if template == 'cart' or request.page_type == 'cart' %}
+  {% render 'hide-service-product' %}
   <link rel="stylesheet" href="{{ 'cart-customizer.css' | asset_url }}">
   <script src="{{ 'cart-customizer.js' | asset_url }}" defer></script>
   <script src="{{ 'cart-price-display.js' | asset_url }}" defer></script>
