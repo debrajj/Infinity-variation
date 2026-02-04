@@ -326,16 +326,24 @@ app.get('/api/customization-service', async (req, res) => {
         const productData = {
           product: {
             title: 'Product Customization',
-            body_html: '<p>Automatic service fee for product customizations.</p><p><strong>This product is managed by the Infinite Product Options app. Do not purchase separately.</strong></p>',
+            body_html: '<p>Service fee for product customizations. This product is automatically managed by the app.</p>',
             vendor: 'Infinite Options',
             product_type: 'Service',
             status: 'active',
+            published: true,
             tags: 'customization-service,hidden,app-managed',
             variants: [{
               price: '1.00',
               inventory_management: null,
+              inventory_policy: 'continue',
               requires_shipping: false,
-              taxable: false
+              taxable: false,
+              weight: 0,
+              weight_unit: 'kg'
+            }],
+            options: [{
+              name: 'Title',
+              values: ['Default']
             }]
           }
         };

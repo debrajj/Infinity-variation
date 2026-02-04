@@ -494,35 +494,50 @@
           
           const result = await response.json();
           console.log('✅ Product added:', result);
-          console.log('💰 Addon total:', prices.addonTotal);
           
-          // Store addon price in cart attributes for checkout
+          // Add customization service product for addon pricing
           if (prices.addonTotal > 0) {
             try {
-              console.log('💎 Storing addon price in cart attributes...');
+              console.log('💎 Adding customization service...');
               
-              // Update cart attributes with addon pricing
-              const cartUpdateResponse = await fetch('/cart/update.js', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Accept': 'application/json'
-                },
-                body: JSON.stringify({
-                  attributes: {
-                    '_addon_total': prices.addonTotal.toFixed(2),
-                    '_addon_currency': config.currency
+              const serviceResponse = await fetch('https://infinity-variation.onrender.com/api/customization-service');
+              const serviceData = await serviceResponse.json();
+              
+              console.log('📦 Service data:', serviceData);
+              
+              if (serviceData.variantId) {
+                const servicePrice = parseFloat(serviceData.price) || 1.00;
+                const quantity = Math.round(prices.addonTotal / servicePrice);
+                
+                console.log('💰 Adding service product - Quantity:', quantity, 'Price:', servicePrice);
+                
+                const serviceProductData = {
+                  id: parseInt(serviceData.variantId),
+                  quantity: quantity,
+                  properties: {
+                    'Title': 'Printing',
+                    '_for_product': config.productTitle
                   }
-                })
-              });
-              
-              if (cartUpdateResponse.ok) {
-                console.log('✅ Cart attributes updated with addon pricing');
-              } else {
-                console.warn('⚠️ Could not update cart attributes');
+                };
+                
+                const serviceResp = await fetch('/cart/add.js', {
+                  method: 'POST',
+                  headers: { 
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                  },
+                  body: JSON.stringify(serviceProductData)
+                });
+                
+                if (serviceResp.ok) {
+                  console.log('✅ Customization service added');
+                } else {
+                  const errorText = await serviceResp.text();
+                  console.error('❌ Service product error:', errorText);
+                }
               }
             } catch (error) {
-              console.warn('⚠️ Error updating cart attributes:', error);
+              console.error('❌ Error adding service:', error);
             }
           }
           
